@@ -1,0 +1,16 @@
+/.build
+*.sublime-workspace
+*.pri
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.loa
+*.lof
+*.log
+*.lot
+*.out
+*.xml
+*.toc
