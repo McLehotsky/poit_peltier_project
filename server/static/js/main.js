@@ -97,30 +97,33 @@ socket.on('new_data', (data) => {
 
 socket.on('connect', () => console.log('WebSocket pripojený - 3 grafy aktívne.'));
 
-$('#connect-btn').click(function() {
-    let isConnected = $(this).hasClass('btn-success'); // Jednoduchá kontrola stavu tlačidla
-    let newState = !isConnected;
-
-    $.ajax({
-        url: '/api/connect',
-        type: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify({ connect: newState }),
-        success: function(resp) {
-            if (resp.connected) {
-                $('#connect-btn').text('Connected').removeClass('btn-warning').addClass('btn-success');
-                console.log("Brána otvorená, Arduino môže komunikovať.");
-            } else {
-                $('#connect-btn').text('Connect').removeClass('btn-success').addClass('btn-warning');
-                console.log("Brána zatvorená.");
-            }
-        }
-    });
-});
-
 $(document).ready(function() {
 
-    // --- LOGIKA PRE TLAČIDLO START ---
+    // Tlačidlo CONNECT (Logická brána pre ESP32)
+    $('#connect-btn').click(function() {
+        let isConnected = $(this).hasClass('btn-success'); 
+        let newState = !isConnected;
+
+        $.ajax({
+            url: '/api/connect',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ connect: newState }),
+            success: function(resp) {
+                const time = new Date().toLocaleTimeString();
+                if (resp.connected) {
+                    $('#connect-btn').text('Connected').removeClass('btn-warning').addClass('btn-success');
+                    $('#terminal').append(`[${time}] System: CONNECTED (Brána otvorená)\n`);
+                } else {
+                    $('#connect-btn').text('Connect').removeClass('btn-success').addClass('btn-warning');
+                    $('#terminal').append(`[${time}] System: DISCONNECTED (Brána zatvorená)\n`);
+                }
+                $('#terminal').scrollTop($('#terminal')[0].scrollHeight);
+            }
+        });
+    });
+
+    // Tlačidlo START
     $('#start-btn').click(function() {
         $.ajax({
             url: '/api/start',
@@ -128,23 +131,18 @@ $(document).ready(function() {
             contentType: 'application/json',
             data: JSON.stringify({}),
             success: function(response) {
-                if (response.status === "ok") {
-                    // Pridáme info do terminálu
-                    const time = new Date().toLocaleTimeString();
-                    $('#terminal').append(`[${time}] System: ŠTART - Regulácia bola aktivovaná.\n`);
-                    // Automaticky odscrollujeme terminál nadol
-                    $('#terminal').scrollTop($('#terminal')[0].scrollHeight);
-                }
+                const time = new Date().toLocaleTimeString();
+                $('#terminal').append(`[${time}] System: START - Regulácia a grafy spustené.\n`);
+                $('#terminal').scrollTop($('#terminal')[0].scrollHeight);
             },
             error: function(xhr) {
-                // Ak nie sme pripojení (brána Connect), vypíšeme chybu
-                const errorMsg = xhr.responseJSON ? xhr.responseJSON.msg : "Chyba komunikácie";
+                const errorMsg = xhr.responseJSON ? xhr.responseJSON.msg : "Chyba";
                 $('#terminal').append(`[${new Date().toLocaleTimeString()}] Error: ${errorMsg}\n`);
             }
         });
     });
 
-    // --- LOGIKA PRE TLAČIDLO STOP ---
+    // Tlačidlo STOP
     $('#stop-btn').click(function() {
         $.ajax({
             url: '/api/stop',
@@ -152,11 +150,9 @@ $(document).ready(function() {
             contentType: 'application/json',
             data: JSON.stringify({}),
             success: function(response) {
-                if (response.status === "ok") {
-                    const time = new Date().toLocaleTimeString();
-                    $('#terminal').append(`[${time}] System: STOP - Regulácia bola zastavená.\n`);
-                    $('#terminal').scrollTop($('#terminal')[0].scrollHeight);
-                }
+                const time = new Date().toLocaleTimeString();
+                $('#terminal').append(`[${time}] System: STOP - Regulácia pozastavená.\n`);
+                $('#terminal').scrollTop($('#terminal')[0].scrollHeight);
             }
         });
     });
