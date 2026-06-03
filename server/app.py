@@ -1,4 +1,22 @@
 import pymysql
+from threading import Lock
+import random # Nezabudni pridať import na vrch súboru
+
+def test_data_emitter():
+    """Simulátor dát pre grafy (Pumpa, TEC, Teplota)"""
+    print("Simulátor dát spustený...")
+    while True:
+        # Generujeme realistické testovacie dáta
+        test_data = {
+            "temperature": round(random.uniform(20.0, 25.0), 2), # Fluktuácia okolo 22 stupňov
+            "pump_pwm": random.randint(100, 255),               # Náhodný výkon pumpy
+            "tec_pwm": random.randint(50, 150)                  # Náhodný výkon Peltieru
+        }
+        
+        # Odošleme cez Socket.io (namespace a event musia sedieť s tvojím JS)
+        socketio.emit('new_data', test_data, namespace='/test')
+        
+        socketio.sleep(2) # Počkáme 2 sekundy pred ďalšou dávkou
 
 pymysql.install_as_MySQLdb()  # Windows fix
 
@@ -9,10 +27,14 @@ import json
 import requests
 from datetime import datetime, timezone
 
+
 #  APLIKÁCIA
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'peltier_secret'
 socketio = SocketIO(app, cors_allowed_origins="*")
+
+thread = None
+thread_lock = Lock()
 
 config = configparser.ConfigParser()
 config.read('config.cfg')
@@ -95,11 +117,14 @@ def save_to_json(data: dict):
 #  STAV SYSTÉMU  (aktuálne hodnoty + mód regulácie)
 
 system_state = {
+    "connected": False,
     "temperature": None,
     "pump_pwm": 0,
     "tec_pwm": 0,
+    "target_pump_pwm": 0,
+    "target_tec_pwm": 0,
     "setpoint": 25.0,
-    "mode": 1,  # 1 = TEC, 2 = pumpa, 3 = kaskáda
+    "mode": 1,
     "running": False
 }
 
@@ -120,11 +145,16 @@ def archive():
 
 @app.route('/api/update', methods=['POST'])
 def update_data():
-    data = request.json
-    if not data:
-        return jsonify({"status": "error", "msg": "no data"}), 400
+    if not system_state['connected']:
+        return jsonify({
+            "status": "standby",
+            "connected": False,
+            "running": False,
+            "msg": "Waiting for web connection"
+        })
 
-    print(f"[ESP32] {data}")
+    data = request.json
+    if not data: return jsonify({"status": "error"}), 400
 
     # Aktualizuj lokálny stav
     system_state.update({
@@ -143,24 +173,28 @@ def update_data():
     }
 
     # Pošli kompletné telemetrické dáta na ThingsBoard
-    send_to_thingsboard(tb_data)
-
-    # Ulož do databázy
-    save_to_db({**data, "setpoint": system_state['setpoint']})
-
-    # Ulož do JSON súboru
-    save_to_json(data)
+    # send_to_thingsboard(tb_data)
 
     # Broadcast cez WebSocket všetkým pripojeným klientom
-    socketio.emit('new_data', data, namespace='/test')
+    if system_state['running']:
+        socketio.emit('new_data', data, namespace='/test')
+        # Ulož do databázy
+        # save_to_db({**data, "setpoint": system_state['setpoint']})
+    
+        # Ulož do JSON súboru
+        # save_to_json(data)
 
     # Vráť ESP32 aktuálny setpoint a mód
     return jsonify({
         "status": "ok",
-        "setpoint": system_state['setpoint'],
+        "connected": system_state['connected'],
+        "running": system_state['running'],
         "mode": system_state['mode'],
-        "running": system_state['running']
+        "target_pump": system_state['target_pump_pwm'],
+        "target_tec": system_state['target_tec_pwm'],
+        "setpoint": system_state['setpoint']
     })
+
 
 
 #  API  –  ovládanie z dashboardu / frontendu
@@ -206,12 +240,30 @@ def get_status():
     """Vráť aktuálny stav systému"""
     return jsonify(system_state)
 
+# NOVÝ ENDPOINT PRE TLAČIDLO CONNECT
+@app.route('/api/connect', methods=['POST'])
+def connect_trigger():
+    data = request.json
+    # Prepneme stav podľa toho, čo prišlo z frontendu
+    system_state['connected'] = data.get('connect', False)
+    
+    status_text = "PRIPOJENÉ" if system_state['connected'] else "ODPOJENÉ"
+    print(f"[GATEWAY] Systém je teraz: {status_text}")
+    
+    return jsonify({"status": "ok", "connected": system_state['connected']})
+
+
 
 #  WEBSOCKET  –  udalosti
 @socketio.on('connect', namespace='/test')
-def on_connect():
-    print('[WS] klient pripojený')
-    emit('status', system_state)
+def test_connect():
+    # global thread
+    # with thread_lock:
+    #     if thread is None:
+    #         # Namiesto background_thread (ktorý čaká na Arduino) 
+    #         # teraz na test spustíme náš emitter:
+    #         thread = socketio.start_background_task(target=test_data_emitter)
+    print('Web klient pripojený k simulátoru')
 
 
 @socketio.on('disconnect', namespace='/test')

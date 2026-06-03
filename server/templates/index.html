@@ -31,7 +31,7 @@
         <div class="row">
             <div class="col-4 bg-slate-200 p-2">
                 <div class="d-flex align-items-center justify-content-center mb-3">
-                    <button id="connect-btn" class="btn btn-block bg-yellow-500">Connect</button>
+                    <button id="connect-btn" class="btn btn-block btn-warning">Connect</button>
                 </div>
                 <div class="row d-flex justify-content-center">
                     <div class="col">
@@ -66,22 +66,21 @@
                     <textarea id="terminal" class="terminal" aria-label="Terminal"></textarea>
                 </div>
             </div>
-            <div class="col-8 bg-slate-100 p-2">
+            <div class="col-8 bg-slate-100 p-3">
                 <div class="row">
-                    <div class="col">
-                        <div class="bg-slate-200">
-                            graph
-                        </div>
+                    <div class="col-6">
+                        <p class="text-center"> pumpa </p>
+                        <div id="pump-graph" class="graph-container shadow-sm"></div>
                     </div>
-                    <div class="col">
-                        <div class="bg-slate-200">
-                            graph
-                        </div>
+                    <div class="col-6">
+                        <p class="text-center"> peltier </p>
+                        <div id="tec-graph" class="graph-container shadow-sm"></div>
                     </div>
                 </div>
-                <div class="">
-                    <div class="bg-slate-200">
-                        graph
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <p class="text-center"> teplota </p>
+                        <div id="temp-graph" class="graph-container shadow-sm"></div>
                     </div>
                 </div>
             </div>
