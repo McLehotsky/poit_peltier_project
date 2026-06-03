@@ -110,9 +110,9 @@ def index():
     return render_template('index.html')
 
 
-@app.route('/graph')
-def graph():
-    return render_template('graph.html')
+@app.route('/archive')
+def archive():
+    return render_template('archive.html')
 
 
 #  API  –  príjem dát z ESP32
