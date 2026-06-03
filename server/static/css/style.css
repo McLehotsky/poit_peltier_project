@@ -1,4 +1,4 @@
-body {
+/* body {
   font-family: sans-serif;
   background: #f0f0f0;
   text-align: center;
@@ -9,4 +9,74 @@ body {
   display: inline-block;
   padding: 20px;
   border-radius: 10px;
+} */
+
+:root {
+  /* ZÁKLADNÉ FARBY (Odtieň 500 z Tailwindu) */
+  --tw-color-red-500: #ef4444;     /* Chyba / Nebezpečenstvo */
+  --tw-color-orange-500: #f97316;
+  --tw-color-amber-500: #f59e0b;
+  --tw-color-yellow-500: #eab308;  /* Varovanie */
+  --tw-color-green-500: #22c55e;   /* Úspech */
+  --tw-color-emerald-500: #10b981;
+  --tw-color-cyan-500: #06b6d4;
+  --tw-color-blue-500: #3b82f6;    /* Info / Primárna */
+  --tw-color-indigo-500: #6366f1;
+  --tw-color-violet-500: #8b5cf6;
+  --tw-color-purple-500: #a855f7;
+  --tw-color-pink-500: #ec4899;
+  --tw-color-rose-500: #f43f5e;
+
+  /* ŠKÁLA PRE SIVÚ (Slate - výborná na texty a pozadia) */
+  --tw-color-slate-50: #f8fafc;
+  --tw-color-slate-100: #f1f5f9;
+  --tw-color-slate-200: #e2e8f0;
+  --tw-color-slate-300: #cbd5e1;
+  --tw-color-slate-400: #94a3b8;
+  --tw-color-slate-500: #64748b;
+  --tw-color-slate-600: #475569;
+  --tw-color-slate-700: #334155;
+  --tw-color-slate-800: #1e293b;
+  --tw-color-slate-900: #0f172a;
+  --tw-color-slate-950: #020617;
+
+  /* ŠKÁLA PRE MODRÚ (Blue - výborná na tlačidlá a linky) */
+  --tw-color-blue-50: #eff6ff;
+  --tw-color-blue-100: #dbeafe;
+  --tw-color-blue-200: #bfdbfe;
+  --tw-color-blue-300: #93c5fd;
+  --tw-color-blue-400: #60a5fa;
+  --tw-color-blue-500: #3b82f6;
+  --tw-color-blue-600: #2563eb;
+  --tw-color-blue-700: #1d4ed8;
+  --tw-color-blue-800: #1e40af;
+  --tw-color-blue-900: #1e3a8a;
+  --tw-color-blue-950: #172554;
 }
+
+/* --- FARBA TEXTU --- */
+.text-red-500 { color: var(--tw-color-red-500); }
+.text-yellow-500 { color: var(--tw-color-yellow-500); }
+.text-green-500 { color: var(--tw-color-green-500); }
+.text-blue-500 { color: var(--tw-color-blue-500); }
+
+.text-slate-500 { color: var(--tw-color-slate-500); }
+.text-slate-900 { color: var(--tw-color-slate-900); } /* Tmavý text */
+
+/* --- FARBA POZADIA --- */
+.bg-red-500 { background-color: var(--tw-color-red-500); }
+.bg-yellow-500 { background-color: var(--tw-color-yellow-500); }
+.bg-green-500 { background-color: var(--tw-color-green-500); }
+.bg-blue-500 { background-color: var(--tw-color-blue-500); }
+.bg-blue-600 { background-color: var(--tw-color-blue-600); } /* Hover na tlačidlo */
+.bg-slate-50 { background-color: var(--tw-color-slate-50);}
+.bg-slate-100 { background-color: var(--tw-color-slate-100);}
+.bg-slate-200 { background-color: var(--tw-color-slate-200);}
+
+.bg-slate-50 { background-color: var(--tw-color-slate-50); } /* Svetlé pozadie stránky */
+.bg-slate-800 { background-color: var(--tw-color-slate-800); } /* Tmavé pozadie (Dark mode) */
+
+/* --- FARBA BORDERS (Okrajov) --- */
+.border-red-500 { border-color: var(--tw-color-red-500); }
+.border-blue-500 { border-color: var(--tw-color-blue-500); }
+.border-slate-200 { border-color: var(--tw-color-slate-200); } /* Jemný okraj */
