@@ -80,3 +80,16 @@
 .border-red-500 { border-color: var(--tw-color-red-500); }
 .border-blue-500 { border-color: var(--tw-color-blue-500); }
 .border-slate-200 { border-color: var(--tw-color-slate-200); } /* Jemný okraj */
+
+
+.graph-container {
+  width: 100%;       /* Vyplní celý col-x */
+  height: 250px;     /* Fixná výška pre malé grafy */
+  background: white; /* Pomôže ti vidieť hranice kontajnera pri ladení */
+  border-radius: 8px;
+  overflow: hidden;  /* Plotly občas preteká o 1-2px */
+}
+
+#temp-graph {
+  height: 300px;
+}
