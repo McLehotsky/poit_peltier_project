@@ -2001,7 +2001,7 @@
               "entityAliasId": "9df0b2ac-ce5e-8dee-addb-cff4f20ba87e",
               "dataKeys": [
                 {
-                  "name": "pump_pwm",
+                  "name": "target_pump_pwm",
                   "type": "timeseries",
                   "label": "Ovládanie: Pump PWM",
                   "color": "#E521F3",
@@ -2085,7 +2085,7 @@
               "entityAliasId": "9df0b2ac-ce5e-8dee-addb-cff4f20ba87e",
               "dataKeys": [
                 {
-                  "name": "tec_pwm",
+                  "name": "target_tec_pwm",
                   "type": "timeseries",
                   "label": "Ovládanie: TEC PWM",
                   "color": "#FF5722",

@@ -69,15 +69,16 @@ def on_message(client, userdata, msg):
         if msg.topic == "v1/devices/me/attributes":
             print(f"[ATTR] Shared attribute update: {data}")
 
-            if "pump_pwm" in data:
-                system_state['target_pump_pwm'] = int(data['pump_pwm'])
+            if "target_pump_pwm" in data:
+                system_state['target_pump_pwm'] = int(data['target_pump_pwm'])
                 print(f"[ATTR] target_pump_pwm → {system_state['target_pump_pwm']}")
                 socketio.emit('status_update', {'target_pump': system_state['target_pump_pwm']}, namespace='/test')
 
-            if "tec_pwm" in data:
-                system_state['target_tec_pwm'] = int(data['tec_pwm'])
+            if "target_tec_pwm" in data:
+                system_state['target_tec_pwm'] = int(data['target_tec_pwm'])
                 print(f"[ATTR] target_tec_pwm → {system_state['target_tec_pwm']}")
                 socketio.emit('status_update', {'target_tec': system_state['target_tec_pwm']}, namespace='/test')
+
 
             if "control_mode" in data:
                 system_state['mode'] = int(data['control_mode'])
