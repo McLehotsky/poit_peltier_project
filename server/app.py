@@ -10,7 +10,8 @@ def test_data_emitter():
         test_data = {
             "temperature": round(random.uniform(20.0, 25.0), 2), # Fluktuácia okolo 22 stupňov
             "pump_pwm": random.randint(100, 255),               # Náhodný výkon pumpy
-            "tec_pwm": random.randint(50, 150)                  # Náhodný výkon Peltieru
+            "tec_pwm": random.randint(50, 150),                  # Náhodný výkon Peltieru
+            "setpoint": system_state.get('setpoint', 25.0)
         }
         
         # Odošleme cez Socket.io (namespace a event musia sedieť s tvojím JS)
@@ -26,6 +27,7 @@ import configparser
 import json
 import requests
 from datetime import datetime, timezone
+import paho.mqtt.client as mqtt
 
 
 #  APLIKÁCIA
@@ -40,23 +42,67 @@ config = configparser.ConfigParser()
 config.read('config.cfg')
 
 #  THINGSBOARD KONFIGURÁCIA
-#TB_HOST = "thingsboard.cloud"
-TB_URL = "https://eu.thingsboard.cloud/api/v1/{token}/telemetry"
-TB_TOKEN = "X9ttptsR0dW5gvE3wYTT"  # ← zmeňit toto za Access Token zariadenia
+# --- KONFIGURÁCIA ---
+TB_HOST = "eu.thingsboard.cloud"
+TB_PORT = 1883
+TB_TOKEN = "X9ttptsR0dW5gvE3wYTT"
 
+# --- 2. UPRAVENÉ MQTT CALLBACKS ---
+def on_connect(client, userdata, flags, rc):
+    if rc == 0:
+        print("[MQTT] Úspešne pripojené k ThingsBoardu")
+        # Prihlásime sa na RPC príkazy
+        client.subscribe("v1/devices/me/rpc/request/+")
+    else:
+        print(f"[MQTT] Chyba pripojenia: {rc}")
+
+def on_message(client, userdata, msg):
+    global system_state
+    try:
+        data = json.loads(msg.payload)
+        method = data.get("method")
+        params = data.get("params")
+        
+        print(f"[RPC] Príkaz z TB -> Metóda: {method}, Hodnota: {params}")
+
+        # Mapovanie RPC metód na náš stav
+        if method == "setPumpPwm":
+            system_state['target_pump_pwm'] = int(params)
+            # Pošleme info aj na náš lokálny web cez Socket.io
+            socketio.emit('status_update', {'target_pump': params}, namespace='/test')
+            
+        elif method == "setTecPwm":
+            system_state['target_tec_pwm'] = int(params)
+            socketio.emit('status_update', {'target_tec': params}, namespace='/test')
+            
+        elif method == "setMode":
+            system_state['mode'] = int(params)
+            socketio.emit('status_update', {'mode': params}, namespace='/test')
+            
+        elif method == "setRunning":
+            system_state['running'] = bool(params)
+            if not system_state['running']:
+                save_session_to_db_and_json()
+            socketio.emit('status_update', {'running': system_state['running']}, namespace='/test')
+
+    except Exception as e:
+        print(f"[RPC Error] Chyba pri spracovaní správy: {e}")
+
+# --- 3. MQTT KLIENT (ponechaj tak ako máš) ---
+mqtt_client = mqtt.Client()
+mqtt_client.on_connect = on_connect
+mqtt_client.on_message = on_message
+mqtt_client.username_pw_set(TB_TOKEN)
+mqtt_client.connect(TB_HOST, TB_PORT, 60)
+mqtt_client.loop_start()
 
 def send_to_thingsboard(data: dict):
-    """Pošle telemetriu na ThingsBoard cloud"""
+    """Publikovanie telemetrie (vylepšené)"""
     try:
-        url = TB_URL.format(token=TB_TOKEN)
-        # Pridaný explicitný Header pre JSON dáta
-        headers = {'Content-Type': 'application/json'}
-        resp = requests.post(url, json=data, headers=headers, timeout=3)
-        print(f"[ThingsBoard] status: {resp.status_code} - {resp.text}")
+        # MQTT publish vráti info o doručení, ak chceš
+        mqtt_client.publish("v1/devices/me/telemetry", json.dumps(data))
     except Exception as e:
-        print(f"[ThingsBoard] chyba: {e}")
-
-
+        print(f"[MQTT] Chyba odosielania: {e}")
 #  JSON SÚBOR  (záloha dát)
 
 JSON_FILE = "data_log.json"
@@ -176,7 +222,10 @@ def update_data():
         # Pridáme do buffra (dočasná pamäť v RAM)
         system_state['session_buffer'].append(data_point)
 
-        socketio.emit('new_data', data, namespace='/test')
+        socketio.emit('new_data', {
+            **data,
+            "setpoint": system_state['setpoint']
+        }, namespace='/test')
         # Ulož do databázy
         # save_to_db({**data, "setpoint": system_state['setpoint']})
     
@@ -321,4 +370,4 @@ def on_disconnect():
 
 if __name__ == '__main__':
     #socketio.run(app, host='0.0.0.0', port=5001, debug=True)
-    socketio.run(app, host='0.0.0.0', port=5001, debug=True, allow_unsafe_werkzeug=True)
+    socketio.run(app, host='0.0.0.0', port=5001, debug=False, allow_unsafe_werkzeug=True)

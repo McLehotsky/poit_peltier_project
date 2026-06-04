@@ -36,14 +36,23 @@ Plotly.newPlot('tec-graph', [{
 }], { ...smallGraphLayout, title: 'PET (PWM)' });
 
 // Graf 3: Teplota (Veľký spodný graf)
-Plotly.newPlot('temp-graph', [{
-    x: graphData.timestamps,
-    y: graphData.temperature,
-    name: 'Teplota',
-    mode: 'lines',
-    fill: 'tozeroy', // Vyplnený graf pod čiarou pre lepší vzhľad
-    line: { color: '#1f77b4', width: 3 }
-}], { 
+Plotly.newPlot('temp-graph', [
+    {
+        x: graphData.timestamps,
+        y: graphData.temperature,
+        name: 'Nameraná teplota',
+        mode: 'lines',
+        fill: 'tozeroy', // Vyplnený graf pod čiarou pre lepší vzhľad
+        line: { color: '#1f77b4', width: 3 }
+    },
+    {
+        x: graphData.timestamps,
+        y: graphData.target_temperature,
+        name: 'Žiadaná teplota',
+        mode: 'lines',
+        line: { color: '#ef4444', width: 2, dash: 'dash' }
+    }
+], { 
     title: 'Teplota [°C]',
     xaxis: { type: 'date' },
     yaxis: { range: [10, 30] },
@@ -62,12 +71,14 @@ socket.on('new_data', (data) => {
     const temp = data.temperature ?? 0;
     const pump = data.pump_pwm ?? 0;
     const tec = data.tec_pwm ?? 0;
+    const setpoint = data.setpoint ?? 0;
 
     // Pridanie dát do polí
     graphData.timestamps.push(currentTime);
     graphData.temperature.push(temp);
     graphData.pump_pwm.push(pump);
     graphData.tec_pwm.push(tec);
+    graphData.target_temperature.push(setpoint);
 
     // Posun grafu (limit bodov)
     if (graphData.timestamps.length > MAX_DATA_POINTS) {
@@ -75,6 +86,7 @@ socket.on('new_data', (data) => {
         graphData.temperature.shift();
         graphData.pump_pwm.shift();
         graphData.tec_pwm.shift();
+        graphData.target_temperature.shift();
     }
 
     // Aktualizácia Pumpy
@@ -90,30 +102,10 @@ socket.on('new_data', (data) => {
     }, {}, [0]);
 
     // Aktualizácia Teploty
-    Plotly.newPlot('temp-graph', [
-        // 1. Krivka: Nameraná teplota
-        {
-            x: graphData.timestamps,
-            y: graphData.temperature,
-            name: 'Nameraná teplota',
-            mode: 'lines',
-            fill: 'tozeroy', // Vyplnený graf pod čiarou pre lepší vzhľad
-            line: { color: '#1f77b4', width: 3 }
-        },
-        // 2. Krivka: Setpoint (cieľová teplota)
-        {
-            x: graphData.timestamps,
-            y: graphData.target_temperature,
-            name: 'Žiadaná teplota',
-            mode: 'lines',
-            line: { color: '#ef4444', width: 2, dash: 'dash' } // Červená prerušovaná čiara
-        }
-    ], { 
-        title: 'Teplota [°C]',
-        xaxis: { type: 'date' },
-        yaxis: { range: [10, 30] },
-        margin: { t: 50, b: 50, l: 50, r: 50 }
-    }, {}, [0]);
+    Plotly.update('temp-graph', {
+        x: [graphData.timestamps, graphData.timestamps],
+        y: [graphData.temperature, graphData.target_temperature]
+    }, {}, [0, 1]);
 });
 
 socket.on('connect', () => console.log('WebSocket pripojený - 3 grafy aktívne.'));
@@ -288,7 +280,7 @@ $(document).ready(function() {
     if (inputPumpa) {
         inputPumpa.addEventListener('blur', (event) => {
             const hodnota = event.target.value;
-            posliPwmKonstantu('/api/pwm_pump', hodnota);
+            posliPwmKonstantu('/api/pwm_pump', hodnota, 'Pumpa');
         });
         
         // Voliteľné: Odoslanie po stlačení klávesu Enter
@@ -303,7 +295,7 @@ $(document).ready(function() {
     if (inputPeltier) {
         inputPeltier.addEventListener('blur', (event) => {
             const hodnota = event.target.value;
-            posliPwmKonstantu('/api/pwm_tec', hodnota);
+            posliPwmKonstantu('/api/pwm_tec', hodnota, 'Peltier');
         });
     
         // Voliteľné: Odoslanie po stlačení klávesu Enter
