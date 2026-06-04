@@ -157,4 +157,104 @@ $(document).ready(function() {
         });
     });
 
+    // --- OVLÁDANIE MÓDU (Mení sa pri výbere z roletky) ---
+    $('#mode-select').change(function() {
+        let selectedMode = parseInt($(this).val()); // Prevedieme na číslo (1, 2 alebo 3)
+        let modeName = $(this).find("option:selected").text(); // Získa presný text
+
+        // LOGIKA ZOBRAZOVANIA POLÍČOK:
+        if (selectedMode === 1) {
+            $('#wrapper-pumpa').show();     // Zobrazí pumpu
+            $('#wrapper-peltier').hide();   // Schová peltier
+        } else if (selectedMode === 2) {
+            $('#wrapper-pumpa').hide();     // Schová pumpu
+            $('#wrapper-peltier').show();   // Zobrazí peltier
+        } else {
+            // Mód 3 (Kaskádová regulácia) - schová obe
+            $('#wrapper-pumpa').hide();
+            $('#wrapper-peltier').hide();
+        }
+
+        // ODESLANIE NA SERVER:
+        $.ajax({
+            url: '/api/mode',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ mode: selectedMode }),
+            success: function(resp) {
+                const time = new Date().toLocaleTimeString();
+                $('#terminal').append(`[${time}] System: Mód zmenený na "${modeName}" (Mód ${resp.mode}).\n`);
+                $('#terminal').scrollTop($('#terminal')[0].scrollHeight);
+            },
+            error: function(xhr) {
+                const time = new Date().toLocaleTimeString();
+                $('#terminal').append(`[${time}] Error: Nepodarilo sa zmeniť mód.\n`);
+                $('#terminal').scrollTop($('#terminal')[0].scrollHeight);
+            }
+        });
+    }).trigger('change'); // <-- Tento '.trigger('change')' hneď pri načítaní stránky zosynchronizuje vizuál s vybratou hodnotou
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const inputPumpa = document.getElementById('ovladanie-pumpa');
+        const inputPeltier = document.getElementById('ovladanie-peltier');
+        
+        // Pomocná funkcia na odoslanie POST požiadavky
+        async function posliPwmKonstantu(url, hodnota) {
+            // Prevody na číslo a základná validácia prázdnej hodnoty
+            const ciselnaHodnota = parseInt(hodnota, 10);
+            if (isNaN(ciselnaHodnota)) {
+                console.warn(`Zadaná hodnota pre ${url} nie je platné číslo.`);
+                return;
+            }
+        
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ pwm: ciselnaHodnota })
+                });
+            
+                if (!response.ok) {
+                    throw new Error(`Chyba pri komunikácii so serverom: ${response.status}`);
+                }
+            
+                const data = await response.json();
+                console.log(`Úspešne aktualizované cez API (${url}):`, data);
+            } catch (error) {
+                console.error(`Nastala chyba pri odosielaní na ${url}:`, error);
+            }
+        }
+    
+        // Naviazanie udalosti 'blur' pre pumpu
+        if (inputPumpa) {
+            inputPumpa.addEventListener('blur', (event) => {
+                const hodnota = event.target.value;
+                posliPwmKonstantu('/api/pwm_pump', hodnota);
+            });
+            
+            // Voliteľné: Odoslanie po stlačení klávesu Enter
+            inputPumpa.addEventListener('keypress', (event) => {
+                if (event.key === 'Enter') {
+                    inputPumpa.blur(); // Vyvolá udalosť blur a stratí fokus
+                }
+            });
+        }
+    
+        // Naviazanie udalosti 'blur' pre Peltierov článok
+        if (inputPeltier) {
+            inputPeltier.addEventListener('blur', (event) => {
+                const hodnota = event.target.value;
+                posliPwmKonstantu('/api/pwm_tec', hodnota);
+            });
+        
+            // Voliteľné: Odoslanie po stlačení klávesu Enter
+            inputPeltier.addEventListener('keypress', (event) => {
+                if (event.key === 'Enter') {
+                    inputPeltier.blur(); // Vyvolá udalosť blur a stratí fokus
+                }
+            });
+        }
+    });
 });
