@@ -97,22 +97,23 @@ def save_to_db(data: dict):
 
 JSON_FILE = "data_log.json"
 
-def save_to_json(data: dict):
-    """Pridá záznam do JSON súboru"""
+def save_session_to_json():
+    """Zapíše celú ukončenú sekvenciu do súboru ako jeden riadok"""
+    if not system_state['session_buffer']:
+        return
+
     try:
-        try:
-            with open(JSON_FILE, 'r') as f:
-                log = json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError):
-            log = []
-
-        log.append({**data, "timestamp": datetime.now(timezone.utc).isoformat()})
-
-        with open(JSON_FILE, 'w') as f:
-            json.dump(log, f, indent=2)
+        # Prevedieme celý zoznam bodov na jeden riadok textu
+        line = json.dumps(system_state['session_buffer'])
+        
+        with open(JSON_FILE, "a") as f:
+            f.write(line + "\n")  # Každá session = jeden riadok
+            
+        print(f"[FILE] Session uložená. Počet bodov: {len(system_state['session_buffer'])}")
+        # Po úspešnom zápise vymažeme buffer pre ďalšie meranie
+        system_state['session_buffer'] = []
     except Exception as e:
-        print(f"[JSON] chyba: {e}")
-
+        print(f"[FILE] Chyba pri zápise: {e}")
 
 #  STAV SYSTÉMU  (aktuálne hodnoty + mód regulácie)
 
@@ -177,6 +178,20 @@ def update_data():
 
     # Broadcast cez WebSocket všetkým pripojeným klientom
     if system_state['running']:
+
+        data_point = {
+            "x": len(system_state['session_buffer']) + 1,
+            "t": datetime.now(timezone.utc).isoformat(),
+            "temp": system_state['temperature'],
+            "p_pwm": system_state['pump_pwm'],
+            "t_pwm": system_state['tec_pwm'],
+            "setpoint": system_state['setpoint'],
+            "mode": system_state['mode']
+        }
+        
+        # Pridáme do buffra (dočasná pamäť v RAM)
+        system_state['session_buffer'].append(data_point)
+
         socketio.emit('new_data', data, namespace='/test')
         # Ulož do databázy
         # save_to_db({**data, "setpoint": system_state['setpoint']})
@@ -231,9 +246,31 @@ def start_system():
 def stop_system():
     """Zastav reguláciu"""
     system_state['running'] = False
+
+    save_session_to_json()
+
     print("[API] systém ZASTAVENÝ")
     return jsonify({"status": "ok", "running": False})
 
+
+#  API – nastavenie PWM z dashboardu (manuálne vstupy)
+@app.route('/api/pwm_pump', methods=['POST'])
+def set_pwm_pump():
+    """Nastaví konštantu pre pumpu (využívané hlavne v Móde 1)"""
+    data = request.json
+    val = int(data.get('pwm', 150))
+    system_state['target_pump_pwm'] = max(0, min(255, val))
+    print(f"[API] Target Pump PWM → {system_state['target_pump_pwm']}")
+    return jsonify({"status": "ok", "target_pump": system_state['target_pump_pwm']})
+
+@app.route('/api/pwm_tec', methods=['POST'])
+def set_pwm_tec():
+    """Nastaví konštantu pre Peltier (využívané hlavne v Móde 2)"""
+    data = request.json
+    val = int(data.get('pwm', 150))
+    system_state['target_tec_pwm'] = max(0, min(255, val))
+    print(f"[API] Target TEC PWM → {system_state['target_tec_pwm']}")
+    return jsonify({"status": "ok", "target_tec": system_state['target_tec_pwm']})
 
 @app.route('/api/status', methods=['GET'])
 def get_status():
@@ -251,6 +288,16 @@ def connect_trigger():
     print(f"[GATEWAY] Systém je teraz: {status_text}")
     
     return jsonify({"status": "ok", "connected": system_state['connected']})
+
+@app.route('/api/read_log/<int:row_id>')
+def read_log(row_id):
+    try:
+        with open(JSON_FILE, "r") as f:
+            lines = f.readlines()
+            # Riadok 3 je index lines[2]
+            return lines[row_id - 1] 
+    except:
+        return "Záznam nenájdený", 404
 
 
 
