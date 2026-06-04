@@ -57,7 +57,9 @@ def send_to_thingsboard(data: dict):
         print(f"[ThingsBoard] chyba: {e}")
 
 
-#  DATABÁZA  (ukladanie histórie)
+#  JSON SÚBOR  (záloha dát)
+
+JSON_FILE = "data_log.json"
 
 def get_db():
     return pymysql.connect(
@@ -69,53 +71,35 @@ def get_db():
         cursorclass=pymysql.cursors.DictCursor
     )
 
-
-def save_to_db(data: dict):
-    """Uloží meranie do SQL databázy"""
-    try:
-        conn = get_db()
-        with conn.cursor() as cur:
-            cur.execute("""
-                INSERT INTO measurements
-                    (temperature, pump_pwm, tec_pwm, setpoint, timestamp)
-                VALUES
-                    (%s, %s, %s, %s, %s)
-            """, (
-                data.get('temperature'),
-                data.get('pump_pwm'),
-                data.get('tec_pwm'),
-                data.get('setpoint'),
-                datetime.now(timezone.utc)
-            ))
-        conn.commit()
-        conn.close()
-    except Exception as e:
-        print(f"[DB] chyba: {e}")
-
-
-#  JSON SÚBOR  (záloha dát)
-
-JSON_FILE = "data_log.json"
-
-def save_session_to_json():
-    """Zapíše celú ukončenú sekvenciu do súboru ako jeden riadok"""
+def save_session_to_db_and_json():
+    """Uloží celú sekvenciu z buffra do DB aj do JSON súboru naraz"""
     if not system_state['session_buffer']:
+        print("[SAVE] Buffer je prázdny, nič neukladám.")
         return
 
     try:
-        # Prevedieme celý zoznam bodov na jeden riadok textu
-        line = json.dumps(system_state['session_buffer'])
-        
-        with open(JSON_FILE, "a") as f:
-            f.write(line + "\n")  # Každá session = jeden riadok
-            
-        print(f"[FILE] Session uložená. Počet bodov: {len(system_state['session_buffer'])}")
-        # Po úspešnom zápise vymažeme buffer pre ďalšie meranie
-        system_state['session_buffer'] = []
-    except Exception as e:
-        print(f"[FILE] Chyba pri zápise: {e}")
+        # 1. Príprava dát (JSON string)
+        json_data = json.dumps(system_state['session_buffer'])
 
-#  STAV SYSTÉMU  (aktuálne hodnoty + mód regulácie)
+        # 2. Zápis do SQL Databázy
+        conn = get_db()
+        with conn.cursor() as cur:
+            cur.execute("INSERT INTO graph (hodnoty) VALUES (%s)", (json_data,))
+        conn.commit()
+        conn.close()
+        print("[DB] Celá session úspešne uložená do databázy.")
+
+        # 3. Zápis do JSON súboru (každá session na nový riadok)
+        with open(JSON_FILE, "a") as f:
+            f.write(json_data + "\n")
+        print("[FILE] Celá session úspešne pridaná do súboru.")
+
+        # 4. VYČISTENIE BUFFRA pre ďalšie meranie
+        system_state['session_buffer'] = []
+
+    except Exception as e:
+        print(f"[SAVE ERROR] Chyba pri ukladaní: {e}")
+
 
 system_state = {
     "connected": False,
@@ -126,9 +110,9 @@ system_state = {
     "target_tec_pwm": 0,
     "setpoint": 25.0,
     "mode": 1,
-    "running": False
+    "running": False,
+    "session_buffer": [] 
 }
-
 
 #  ROUTES  –  frontend
 @app.route('/')
@@ -238,6 +222,7 @@ def set_mode():
 def start_system():
     """Spusti reguláciu"""
     system_state['running'] = True
+    system_state['session_buffer'] = []
     print("[API] systém SPUSTENÝ")
     return jsonify({"status": "ok", "running": True})
 
@@ -247,7 +232,7 @@ def stop_system():
     """Zastav reguláciu"""
     system_state['running'] = False
 
-    save_session_to_json()
+    save_session_to_db_and_json()
 
     print("[API] systém ZASTAVENÝ")
     return jsonify({"status": "ok", "running": False})
@@ -283,6 +268,9 @@ def connect_trigger():
     data = request.json
     # Prepneme stav podľa toho, čo prišlo z frontendu
     system_state['connected'] = data.get('connect', False)
+    if not system_state['connected']:
+        system_state['running'] = False
+        system_state['session_buffer'] = []
     
     status_text = "PRIPOJENÉ" if system_state['connected'] else "ODPOJENÉ"
     print(f"[GATEWAY] Systém je teraz: {status_text}")
@@ -298,6 +286,19 @@ def read_log(row_id):
             return lines[row_id - 1] 
     except:
         return "Záznam nenájdený", 404
+    
+@app.route('/api/read_db/<int:row_id>')
+def read_db(row_id):
+    """Načíta konkrétny záznam z databázy podľa ID"""
+    try:
+        conn = get_db()
+        with conn.cursor() as cur:
+            cur.execute("SELECT hodnoty FROM graph WHERE id=%s", (row_id,))
+            rv = cur.fetchone()
+        conn.close()
+        return rv['hodnoty'] if rv else ("Nenájdené", 404)
+    except Exception as e:
+        return str(e), 500
 
 
 
