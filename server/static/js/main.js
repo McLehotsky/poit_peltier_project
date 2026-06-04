@@ -62,7 +62,7 @@ Plotly.newPlot('temp-graph', [
 
 // --- 3. WEBSOCKET PRIPOJENIE A UPDATE ---
 
-const socket = io("http://localhost:5001/test");
+const socket = io("http://localhost:5003/test");
 
 socket.on('new_data', (data) => {
     const currentTime = new Date();
