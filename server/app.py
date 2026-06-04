@@ -41,8 +41,8 @@ config.read('config.cfg')
 
 #  THINGSBOARD KONFIGURÁCIA
 #TB_HOST = "thingsboard.cloud"
-TB_URL = "http://thingsboard.cloud/api/v1/{token}/telemetry"
-TB_TOKEN = "780kjbsiuz5nrp4nohvg"  # ← zmeňit toto za Access Token zariadenia
+TB_URL = "https://eu.thingsboard.cloud/api/v1/{token}/telemetry"
+TB_TOKEN = "X9ttptsR0dW5gvE3wYTT"  # ← zmeňit toto za Access Token zariadenia
 
 
 def send_to_thingsboard(data: dict):
@@ -148,17 +148,17 @@ def update_data():
         "tec_pwm": data.get('tec_pwm', system_state['tec_pwm']),
     })
 
-    # ThingsBoard vyžaduje pre správne zobrazenie grafu teplôt aj kľúč 'setpoint'.
-    # Ak ho ESP32 neposiela, musíme ho doplniť z lokálneho system_state.
     tb_data = {
         "temperature": system_state['temperature'],
         "pump_pwm": system_state['pump_pwm'],
         "tec_pwm": system_state['tec_pwm'],
-        "setpoint": system_state['setpoint']
+        "setpoint": system_state['setpoint'],
+        "running": system_state['running'],
+        "mode": system_state['mode']
     }
 
-    # Pošli kompletné telemetrické dáta na ThingsBoard
-    # send_to_thingsboard(tb_data)
+    # 2. ODKOMENTUJ TENTO RIADOK:
+    send_to_thingsboard(tb_data) 
 
     # Broadcast cez WebSocket všetkým pripojeným klientom
     if system_state['running']:
@@ -311,7 +311,7 @@ def test_connect():
     #         # Namiesto background_thread (ktorý čaká na Arduino) 
     #         # teraz na test spustíme náš emitter:
     #         thread = socketio.start_background_task(target=test_data_emitter)
-    print('Web klient pripojený k simulátoru')
+    print('[WS] klient pripojený')
 
 
 @socketio.on('disconnect', namespace='/test')

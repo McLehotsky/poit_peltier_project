@@ -194,70 +194,77 @@ $(document).ready(function() {
         });
     }).trigger('change'); // <-- Tento '.trigger('change')' hneď pri načítaní stránky zosynchronizuje vizuál s vybratou hodnotou
 
-    document.addEventListener('DOMContentLoaded', () => {
-        const inputPumpa = document.getElementById('ovladanie-pumpa');
-        const inputPeltier = document.getElementById('ovladanie-peltier');
-        
-        // Pomocná funkcia na odoslanie POST požiadavky
-        async function posliPwmKonstantu(url, hodnota) {
-            // Prevody na číslo a základná validácia prázdnej hodnoty
-            const ciselnaHodnota = parseInt(hodnota, 10);
-            if (isNaN(ciselnaHodnota)) {
-                console.warn(`Zadaná hodnota pre ${url} nie je platné číslo.`);
-                return;
-            }
-        
-            try {
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ pwm: ciselnaHodnota })
-                });
-            
-                if (!response.ok) {
-                    throw new Error(`Chyba pri komunikácii so serverom: ${response.status}`);
-                }
-            
-                const data = await response.json();
-                console.log(`Úspešne aktualizované cez API (${url}):`, data);
-            } catch (error) {
-                console.error(`Nastala chyba pri odosielaní na ${url}:`, error);
-            }
+    const inputPumpa = document.getElementById('ovladanie-pumpa');
+    const inputPeltier = document.getElementById('ovladanie-peltier');
+
+    // Pomocná funkcia na odoslanie POST požiadavky
+    async function posliPwmKonstantu(url, hodnota, label) {
+        // Prevody na číslo a základná validácia prázdnej hodnoty
+        const ciselnaHodnota = parseInt(hodnota, 10);
+        const time = new Date().toLocaleTimeString();
+
+        if (isNaN(ciselnaHodnota)) {
+            $('#terminal').append(`[${time}] Error: Zadaná hodnota pre ${label} nie je platné číslo.`);
+            $('#terminal').scrollTop($('#terminal')[0].scrollHeight);
+            console.warn(`Zadaná hodnota pre ${url} nie je platné číslo.`);
+            return;
         }
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ pwm: ciselnaHodnota })
+            });
+
+            if (!response.ok) {
+                throw new Error(`Chyba pri komunikácii so serverom: ${response.status}`);
+            }
+
+            const data = await response.json();
+            $('#terminal').append(`[${time}] System: ${label} PWM odoslané: ${ciselnaHodnota} (server odpovedal OK).`);
+            $('#terminal').scrollTop($('#terminal')[0].scrollHeight);
+            console.log(`Úspešne aktualizované cez API (${url}):`, data);
+        } catch (error) {
+            $('#terminal').append(`[${time}] Error: Nefunkčné odoslanie ${label} PWM (${error.message}).`);
+            $('#terminal').scrollTop($('#terminal')[0].scrollHeight);
+            console.error(`Nastala chyba pri odosielaní na ${url}:`, error);
+        }
+    }
     
         // Naviazanie udalosti 'blur' pre pumpu
-        if (inputPumpa) {
-            inputPumpa.addEventListener('blur', (event) => {
-                const hodnota = event.target.value;
-                posliPwmKonstantu('/api/pwm_pump', hodnota);
-            });
-            
-            // Voliteľné: Odoslanie po stlačení klávesu Enter
-            inputPumpa.addEventListener('keypress', (event) => {
-                if (event.key === 'Enter') {
-                    inputPumpa.blur(); // Vyvolá udalosť blur a stratí fokus
-                }
-            });
-        }
-    
-        // Naviazanie udalosti 'blur' pre Peltierov článok
-        if (inputPeltier) {
-            inputPeltier.addEventListener('blur', (event) => {
-                const hodnota = event.target.value;
-                posliPwmKonstantu('/api/pwm_tec', hodnota);
-            });
+    if (inputPumpa) {
+        inputPumpa.addEventListener('blur', (event) => {
+            const hodnota = event.target.value;
+            posliPwmKonstantu('/api/pwm_pump', hodnota);
+        });
         
-            // Voliteľné: Odoslanie po stlačení klávesu Enter
-            inputPeltier.addEventListener('keypress', (event) => {
-                if (event.key === 'Enter') {
-                    inputPeltier.blur(); // Vyvolá udalosť blur a stratí fokus
-                }
-            });
-        }
-    });
+        // Voliteľné: Odoslanie po stlačení klávesu Enter
+        inputPumpa.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') {
+                inputPumpa.blur(); // Vyvolá udalosť blur a stratí fokus
+            }
+        });
+    }
+
+    // Naviazanie udalosti 'blur' pre Peltierov článok
+    if (inputPeltier) {
+        inputPeltier.addEventListener('blur', (event) => {
+            const hodnota = event.target.value;
+            posliPwmKonstantu('/api/pwm_tec', hodnota);
+        });
+    
+        // Voliteľné: Odoslanie po stlačení klávesu Enter
+        inputPeltier.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') {
+                inputPeltier.blur(); // Vyvolá udalosť blur a stratí fokus
+            }
+        });
+    }
 });
+
 
 // --- REUSABLE FUNKCIA PRE BOOTSTRAP MODAL ---
 function showModal(title, message, isError = true) {
