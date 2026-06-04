@@ -15,7 +15,7 @@
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarTogglerDemo03" aria-controls="navbarTogglerDemo03" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
-        <a class="navbar-brand" href="#">Navbar</a>
+        <a class="navbar-brand" href="#">Údený peltier</a>
         <div class="collapse navbar-collapse" id="navbarTogglerDemo03">
             <ul class="navbar-nav mr-auto mt-2 mt-lg-0">
                 <li class="nav-item">
@@ -66,6 +66,24 @@
                 </div>
             </div>
         </div>
+    </div>
+    <!-- Bootstrap Modálne Okno -->
+    <div class="modal fade" id="bootstrapModal" tabindex="-1" aria-labelledby="bootstrapModalLabel" aria-hidden="true">
+      <div class="modal-dialog rounded">
+        <div class="modal-content">
+          <div id="modalHeader" class="modal-header bg-danger text-white">
+            <h5 class="modal-title" id="bootstrapModalLabel">Upozornenie</h5>
+            <!-- Krížik upravený pre Bootstrap 5 (btn-close-white zabezpečí, že bude biely) -->
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body" id="bootstrapModalBody">
+            Tu sa zobrazí text správy.
+          </div>
+          <div class="modal-footer">
+            <button type="button" id="modalBtn" class="btn btn-secondary" data-bs-dismiss="modal">Zatvoriť</button>
+          </div>
+        </div>
+      </div>
     </div>
     <script src="../static/js/archive.js"></script>
 </body>

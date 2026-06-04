@@ -258,3 +258,33 @@ $(document).ready(function() {
         }
     });
 });
+
+// --- REUSABLE FUNKCIA PRE BOOTSTRAP MODAL ---
+function showModal(title, message, isError = true) {
+    // Nastavenie textov
+    $('#bootstrapModalLabel').text(title);
+    $('#bootstrapModalBody').html(message); // .html() umožní v správe použiť aj napr. <br> alebo <strong>
+
+    const $header = $('#modalHeader');
+    const $btn = $('#modalBtn');
+
+    if (isError) {
+        // Červený vzhľad pre chyby
+        $header.removeClass('bg-info bg-success text-white').addClass('bg-danger text-white');
+        $btn.removeClass('btn-info btn-success').addClass('btn-danger');
+    } else {
+        // Modrý vzhľad pre informácie/úspech
+        $header.removeClass('bg-danger text-white').addClass('bg-info text-white');
+        $btn.removeClass('btn-danger').addClass('btn-info');
+    }
+
+    // Zobrazenie modálneho okna pomocou Bootstrapu
+    // Ak Bootstrap 5 deteguje jQuery, funguje tento jednoduchý zápis:
+    $('#bootstrapModal').modal('show');
+    
+    // Ak by náhodou jQuery zápis nefungoval (v závislosti od verzie BS5), 
+    // použi tento čistý JS zápis:
+    // let modalElement = document.getElementById('bootstrapModal');
+    // let modalInstance = bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement);
+    // modalInstance.show();
+}

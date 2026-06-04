@@ -5,7 +5,7 @@ $('#show-btn').click(function() {
 
     // 2. Skontrolujeme, či používateľ zadal platné číslo
     if (!rowId || rowId <= 0) {
-        alert("Prosím, zadajte platný index záznamu (číslo väčšie ako 0).");
+        showModal("Neplatný vstup", "Prosím, zadajte platný index záznamu (číslo väčšie ako 0).", true);
         return;
     }
 
@@ -28,12 +28,12 @@ $('#show-btn').click(function() {
                 dataArray = typeof response === 'string' ? JSON.parse(response) : response;
             } catch (e) {
                 console.error("Chyba pri parsovaní JSON:", e);
-                alert("Chyba pri spracovaní dát. Skontrolujte formát v zdroji.");
+                showModal("Chyba pri spracovaní dát", "Skontrolujte formát v zdroji.", true);
                 return;
             }
 
             if (!Array.isArray(dataArray) || dataArray.length === 0) {
-                alert("Záznam je prázdny alebo má nesprávny formát.");
+                showModal("Chyba pri načítaní", "Záznam je prázdny alebo má nesprávny formát.", true);
                 return;
             }
 
@@ -98,7 +98,7 @@ $('#show-btn').click(function() {
         },
         error: function(xhr) {
             console.error("[CHYBA] Nepodarilo sa načítať dáta:", xhr.responseText);
-            alert(`Záznam s indexom ${rowId} v zdroji "${source}" nebol nájdený.`);
+            showModal("Neplatný index", `Záznam s indexom ${rowId} v zdroji "${source}" nebol nájdený.`, true);
         }
     });
 });
@@ -164,5 +164,57 @@ document.addEventListener('DOMContentLoaded', () => {
                 inputPeltier.blur(); // Vyvolá udalosť blur a stratí fokus
             }
         });
+    }
+});
+
+// --- REUSABLE FUNKCIA PRE BOOTSTRAP MODAL ---
+function showModal(title, message, isError = true) {
+    // Nastavenie textov
+    $('#bootstrapModalLabel').text(title);
+    $('#bootstrapModalBody').html(message); // .html() umožní v správe použiť aj napr. <br> alebo <strong>
+
+    const $header = $('#modalHeader');
+    const $btn = $('#modalBtn');
+
+    if (isError) {
+        // Červený vzhľad pre chyby
+        $header.removeClass('bg-info bg-success text-white').addClass('bg-danger text-white');
+        $btn.removeClass('btn-info btn-success').addClass('btn-danger');
+    } else {
+        // Modrý vzhľad pre informácie/úspech
+        $header.removeClass('bg-danger text-white').addClass('bg-info text-white');
+        $btn.removeClass('btn-danger').addClass('btn-info');
+    }
+
+    // Zobrazenie modálneho okna pomocou Bootstrapu
+    // Ak Bootstrap 5 deteguje jQuery, funguje tento jednoduchý zápis:
+    $('#bootstrapModal').modal('show');
+    
+    // Ak by náhodou jQuery zápis nefungoval (v závislosti od verzie BS5), 
+    // použi tento čistý JS zápis:
+    // let modalElement = document.getElementById('bootstrapModal');
+    // let modalInstance = bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement);
+    // modalInstance.show();
+}
+
+// MANUÁLNA POISTKA PRE ZATVORENIE MODALU (Pre Bootstrap 4 aj 5)
+$(document).on('click', '[data-dismiss="modal"], [data-bs-dismiss="modal"], .btn-close, .close, #modalBtn', function() {
+    try {
+        let modalElement = document.getElementById('bootstrapModal');
+        let modalInstance = bootstrap.Modal.getInstance(modalElement);
+        if (modalInstance) {
+            modalInstance.hide();
+        } else {
+            $('#bootstrapModal').modal('hide');
+        }
+    } catch (e) {
+        try {
+            $('#bootstrapModal').modal('hide');
+        } catch (err) {
+            // Posledná záchrana: ak Bootstrap JS úplne zlyhá, skryjeme to natívne
+            $('#bootstrapModal').hide();
+            $('.modal-backdrop').remove(); // Odstráni tmavé pozadie
+            $('body').removeClass('modal-open').css('overflow', ''); // Obnoví scrollovanie na stránke
+        }
     }
 });
