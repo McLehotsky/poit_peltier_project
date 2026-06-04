@@ -1,15 +1,5 @@
--- Peltier Control System - Databáza
--- Spusti v MySQL terminály: mysql -u root -p
-
-CREATE DATABASE IF NOT EXISTS ml_poit;
-
-USE ml_poit;
-
-CREATE TABLE IF NOT EXISTS measurements (
-    id          INT AUTO_INCREMENT PRIMARY KEY,
-    temperature FLOAT,
-    pump_pwm    INT,
-    tec_pwm     INT,
-    setpoint    FLOAT,
-    timestamp   DATETIME
+CREATE TABLE IF NOT EXISTS graph (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    hodnoty LONGTEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
