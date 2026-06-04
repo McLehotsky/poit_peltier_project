@@ -4,7 +4,8 @@ const graphData = {
     timestamps: [],
     temperature: [],
     pump_pwm: [],
-    tec_pwm: []
+    tec_pwm: [],
+    target_temperature: []
 };
 
 // Spoločné nastavenia pre malé grafy (Pumpa a PET)
@@ -89,9 +90,29 @@ socket.on('new_data', (data) => {
     }, {}, [0]);
 
     // Aktualizácia Teploty
-    Plotly.update('temp-graph', {
-        x: [graphData.timestamps],
-        y: [graphData.temperature]
+    Plotly.newPlot('temp-graph', [
+        // 1. Krivka: Nameraná teplota
+        {
+            x: graphData.timestamps,
+            y: graphData.temperature,
+            name: 'Nameraná teplota',
+            mode: 'lines',
+            fill: 'tozeroy', // Vyplnený graf pod čiarou pre lepší vzhľad
+            line: { color: '#1f77b4', width: 3 }
+        },
+        // 2. Krivka: Setpoint (cieľová teplota)
+        {
+            x: graphData.timestamps,
+            y: graphData.target_temperature,
+            name: 'Žiadaná teplota',
+            mode: 'lines',
+            line: { color: '#ef4444', width: 2, dash: 'dash' } // Červená prerušovaná čiara
+        }
+    ], { 
+        title: 'Teplota [°C]',
+        xaxis: { type: 'date' },
+        yaxis: { range: [10, 30] },
+        margin: { t: 50, b: 50, l: 50, r: 50 }
     }, {}, [0]);
 });
 
@@ -196,6 +217,7 @@ $(document).ready(function() {
 
     const inputPumpa = document.getElementById('ovladanie-pumpa');
     const inputPeltier = document.getElementById('ovladanie-peltier');
+    const inputTeplota = document.getElementById('ovladanie-teplota');
 
     // Pomocná funkcia na odoslanie POST požiadavky
     async function posliPwmKonstantu(url, hodnota, label) {
@@ -233,6 +255,34 @@ $(document).ready(function() {
             console.error(`Nastala chyba pri odosielaní na ${url}:`, error);
         }
     }
+
+    async function posliSetpoint(url, hodnota, label) {
+        const ciselnaHodnota = parseFloat(hodnota); // Teplota môže byť desatinná (napr. 25.5)
+        const time = new Date().toLocaleTimeString();
+
+        if (isNaN(ciselnaHodnota)) {
+            $('#terminal').append(`[${time}] Error: Zadaná hodnota pre ${label} nie je platné číslo.\n`);
+            $('#terminal').scrollTop($('#terminal')[0].scrollHeight);
+            return;
+        }
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ setpoint: ciselnaHodnota }) // Očakáva "setpoint"
+            });
+
+            if (!response.ok) throw new Error(`Chyba pri komunikácii so serverom: ${response.status}`);
+
+            const data = await response.json();
+            $('#terminal').append(`[${time}] System: ${label} odoslaný: ${ciselnaHodnota} °C (server odpovedal OK).\n`);
+            $('#terminal').scrollTop($('#terminal')[0].scrollHeight);
+        } catch (error) {
+            $('#terminal').append(`[${time}] Error: Nefunkčné odoslanie ${label} (${error.message}).\n`);
+            $('#terminal').scrollTop($('#terminal')[0].scrollHeight);
+        }
+    }
     
         // Naviazanie udalosti 'blur' pre pumpu
     if (inputPumpa) {
@@ -263,6 +313,18 @@ $(document).ready(function() {
             }
         });
     }
+
+    // Naviazanie udalostí pre SETPOINT TEPLOTY
+    if (inputTeplota) {
+        inputTeplota.addEventListener('blur', (event) => {
+            const hodnota = event.target.value;
+            posliSetpoint('/api/setpoint', hodnota, 'Setpoint teploty');
+        });
+        inputTeplota.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') inputTeplota.blur();
+        });
+    }    
+    
 });
 
 
