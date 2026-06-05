@@ -43,10 +43,10 @@ config = configparser.ConfigParser()
 config.read('config.cfg')
 
 #  THINGSBOARD KONFIGURÁCIA
-TB_HOST = "eu.thingsboard.cloud"
+TB_HOST = "thingsboard.cloud"
 TB_PORT = 1883
-TB_TOKEN = "X9ttptsR0dW5gvE3wYTT"
-
+#TB_TOKEN = "X9ttptsR0dW5gvE3wYTT"
+TB_TOKEN = "ncgt93ixsrkl8ngwt1cs"
 
 # --- 2. UPRAVENÉ MQTT CALLBACKS ---
 def on_connect(client, userdata, flags, rc):
@@ -134,6 +134,7 @@ def on_message(client, userdata, msg):
 
 # --- 3. MQTT KLIENT (ponechaj tak ako máš) ---
 mqtt_client = mqtt.Client()
+#mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
 mqtt_client.on_connect = on_connect
 mqtt_client.on_message = on_message
 mqtt_client.username_pw_set(TB_TOKEN)
