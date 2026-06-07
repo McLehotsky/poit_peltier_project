@@ -93,36 +93,6 @@ Pri mechanickej realizácii bolo potrebné dbať na tesnosť spojov, správne ve
 zabránenie úniku kvapaliny v blízkosti elektroniky. Dôležitý je aj dobrý tepelný kontakt medzi 
 Peltierovým článkom, výmenníkom a chladičom.
 
-\subsection{Peltierova chladiaca zostava a tepelná záťaž}
-
-Peltierov článok je hlavný aktívny prvok na ovplyvňovanie teploty kvapaliny. Pri prechode 
-elektrického prúdu článkom sa jedna jeho strana ochladzuje a druhá zahrieva. Studená strana je 
-spojená s výmenníkom tepla, cez ktorý preteká kvapalina. Teplá strana je pripojená na chladič 
-s ventilátorom, ktorý odvádza vzniknuté teplo do okolia.
-
-Zjednodušene možno chladiaci výkon Peltierovho článku vyjadriť vzťahom:
-
-\[
-Q_c = \Pi I - \frac{1}{2} I^2 R - K \Delta T
-\]
-
-kde $Q_c$ predstavuje teplo odoberané zo studenej strany, $\Pi$ je Peltierov koeficient, $I$ je pretekajúci prúd, $R$ je vnútorný elektrický odpor článku, $K$ je tepelná vodivosť článku a $\Delta T$ je rozdiel teplôt medzi teplou a studenou stranou.
-
-Z uvedeného vzťahu vyplýva, že chladiaci účinok Peltierovho článku nezávisí iba od prúdu, 
-ale aj od teplotného rozdielu a od stratového tepla vznikajúceho v článku. Teplá strana musí 
-preto odviesť nielen teplo odobraté z kvapaliny, ale aj vlastné stratové teplo článku. 
-Ak by nebola aktívne chladená, článok by sa mohol rýchlo prehriať a poškodiť.
-
-Súčasťou modelu je aj vyhrievacie teleso, ktoré slúži na simuláciu tepelnej záťaže alebo 
-poruchového stavu. Umožňuje privádzať do systému dodatočné teplo a sledovať, ako regulačný 
-systém reaguje na zmenu teploty.
-
-\begin{figure}[H]
-    \centering
-    \safeimage{obrazky/peltier_princip.png}{0.75\textwidth}{Princíp činnosti Peltierovho článku a odvod tepla z jeho teplej strany}
-    \label{fig:peltier_princip}
-\end{figure}
-
 \subsection{Elektronické zapojenie a výkonové riadenie}
 
 Elektronická časť systému prepája mikrokontrolér ESP32, snímač teploty, LCD displej, 
