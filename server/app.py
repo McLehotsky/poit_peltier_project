@@ -1,11 +1,16 @@
+import eventlet
+eventlet.monkey_patch()
+
+
 import pymysql
 from threading import Lock
 import random
 
 
+
 def test_data_emitter():
     """Simulátor dát pre grafy (Pumpa, TEC, Teplota)"""
-    print("Simulátor dát spustený...")
+    log_to_terminal("Simulátor dát spustený...")
     while True:
         test_data = {
             "temperature": round(random.uniform(20.0, 25.0), 2),
@@ -15,6 +20,18 @@ def test_data_emitter():
         }
         socketio.emit('new_data', test_data, namespace='/test')
         socketio.sleep(2)
+
+def log_to_terminal(message):
+    """Vypíše správu do VSCode konzoly a pošle ju cez Socket.io na web."""
+    timestamp = datetime.now().strftime("%H:%M:%S")
+    full_msg = f"[{timestamp}] {message}"
+    
+    # 1. Výpis do konzoly VSCode
+    print(full_msg)
+    
+    # 2. Odoslanie na web cez WebSocket (všetkým pripojeným klientom)
+    # Používame socketio.emit bez ohľadu na to, či ide o API call alebo MQTT
+    socketio.emit('terminal_log', {'msg': full_msg}, namespace='/test')
 
 
 pymysql.install_as_MySQLdb()  # Windows fix
@@ -41,8 +58,9 @@ config.read('config.cfg')
 #  THINGSBOARD KONFIGURÁCIA
 TB_HOST = "thingsboard.cloud"
 TB_PORT = 1883
-# TB_TOKEN = "ncgt93ixsrkl8ngwt1cs"
-TB_TOKEN = "X9ttptsR0dW5gvE3wYTT"
+TB_TOKEN = "ncgt93ixsrkl8ngwt1cs"
+# TB_TOKEN = "X9ttptsR0dW5gvE3wYTT"
+
 
 
 # ─── POMOCNÁ FUNKCIA pre shared attributes ───────────────────────────────────
@@ -50,34 +68,34 @@ def _apply_attributes(data: dict):
     """Spracuje shared attributes z ThingsBoard (update aj response)"""
     if "target_pump_pwm" in data:
         system_state['target_pump_pwm'] = int(data['target_pump_pwm'])
-        print(f"[ATTR] target_pump_pwm → {system_state['target_pump_pwm']}")
+        log_to_terminal(f"[ATTR] target_pump_pwm → {system_state['target_pump_pwm']}")
         socketio.emit('status_update', {'target_pump': system_state['target_pump_pwm']}, namespace='/test')
 
     if "target_tec_pwm" in data:
         system_state['target_tec_pwm'] = int(data['target_tec_pwm'])
-        print(f"[ATTR] target_tec_pwm → {system_state['target_tec_pwm']}")
+        log_to_terminal(f"[ATTR] target_tec_pwm → {system_state['target_tec_pwm']}")
         socketio.emit('status_update', {'target_tec': system_state['target_tec_pwm']}, namespace='/test')
 
     if "control_mode" in data:
         system_state['mode'] = int(data['control_mode'])
-        print(f"[ATTR] mode → {system_state['mode']}")
+        log_to_terminal(f"[ATTR] mode → {system_state['mode']}")
         socketio.emit('status_update', {'mode': system_state['mode']}, namespace='/test')
 
     if "archiv_source" in data:
         system_state['archiv_source'] = int(data['archiv_source'])
-        print(f"[ATTR] archiv_source → {system_state['archiv_source']}")
+        log_to_terminal(f"[ATTR] archiv_source → {system_state['archiv_source']}")
         socketio.emit('status_update', {'archiv_source': system_state['archiv_source']}, namespace='/test')
 
     if "archiv_index" in data:
         system_state['archiv_index'] = int(data['archiv_index'])
-        print(f"[ATTR] archiv_index → {system_state['archiv_index']}")
+        log_to_terminal(f"[ATTR] archiv_index → {system_state['archiv_index']}")
         socketio.emit('status_update', {'archiv_index': system_state['archiv_index']}, namespace='/test')
 
 
 # ─── MQTT CALLBACKS ───────────────────────────────────────────────────────────
 def on_connect(client, userdata, flags, rc):
     if rc == 0:
-        print("[MQTT] Úspešne pripojené k ThingsBoardu")
+        log_to_terminal("[MQTT] Úspešne pripojené k ThingsBoardu")
         client.subscribe("v1/devices/me/rpc/request/+")
         client.subscribe("v1/devices/me/attributes")
         # FIX: prihlás sa aj na response topic a vyžiadaj aktuálne hodnoty
@@ -87,7 +105,7 @@ def on_connect(client, userdata, flags, rc):
             json.dumps({"sharedKeys": "control_mode,target_pump_pwm,target_tec_pwm,archiv_source,archiv_index"})
         )
     else:
-        print(f"[MQTT] Chyba pripojenia: {rc}")
+        log_to_terminal(f"[MQTT] Chyba pripojenia: {rc}")
 
 
 def on_message(client, userdata, msg):
@@ -97,13 +115,13 @@ def on_message(client, userdata, msg):
 
         # FIX: shared attribute - priamy update z TB (napr. po kliknutí Mod 1/2/3)
         if msg.topic == "v1/devices/me/attributes":
-            print(f"[ATTR] Shared attribute update: {data}")
+            log_to_terminal(f"[ATTR] Shared attribute update: {data}")
             _apply_attributes(data)
             return
 
         # FIX: response na vyžiadané atribúty (po pripojení)
         if msg.topic.startswith("v1/devices/me/attributes/response/"):
-            print(f"[ATTR] Attribute response: {data}")
+            log_to_terminal(f"[ATTR] Attribute response: {data}")
             shared = data.get("shared", {})
             _apply_attributes(shared)
             return
@@ -111,7 +129,7 @@ def on_message(client, userdata, msg):
         method = data.get("method")
         params = data.get("params")
 
-        print(f"[RPC] Príkaz z TB -> Metóda: {method}, Hodnota: {params}")
+        log_to_terminal(f"[RPC] Príkaz z TB -> Metóda: {method}, Hodnota: {params}")
 
         if method == "setPumpPwm":
             system_state['target_pump_pwm'] = int(params)
@@ -124,7 +142,7 @@ def on_message(client, userdata, msg):
         elif method == "setMode":
             # FIX: int() funguje aj pre string "1" aj pre int 1
             system_state['mode'] = int(params)
-            print(f"[RPC] mode → {system_state['mode']}")
+            log_to_terminal(f"[RPC] mode → {system_state['mode']}")
             socketio.emit('status_update', {'mode': system_state['mode']}, namespace='/test')
 
         elif method == "setRunning":
@@ -139,7 +157,7 @@ def on_message(client, userdata, msg):
                 system_state['running'] = False
                 system_state['session_buffer'] = []
             status_text = "PRIPOJENÉ" if system_state['connected'] else "ODPOJENÉ"
-            print(f"[RPC] Systém je teraz: {status_text}")
+            log_to_terminal(f"[RPC] Systém je teraz: {status_text}")
             socketio.emit('status_update', {'connected': system_state['connected']}, namespace='/test')
 
         # RPC odpoveď späť do TB
@@ -150,7 +168,7 @@ def on_message(client, userdata, msg):
         )
 
     except Exception as e:
-        print(f"[RPC Error] Chyba pri spracovaní správy: {e}")
+        log_to_terminal(f"[RPC Error] Chyba pri spracovaní správy: {e}")
 
 
 # ─── MQTT KLIENT ──────────────────────────────────────────────────────────────
@@ -180,7 +198,7 @@ def send_to_thingsboard(data: dict):
             json.dumps({"terminal": terminal})
         )
     except Exception as e:
-        print(f"[MQTT] Chyba odosielania: {e}")
+        log_to_terminal(f"[MQTT] Chyba odosielania: {e}")
 
 
 #  JSON SÚBOR (záloha dát)
@@ -201,7 +219,7 @@ def get_db():
 def save_session_to_db_and_json():
     """Uloží celú sekvenciu z buffra do DB aj do JSON súboru naraz"""
     if not system_state['session_buffer']:
-        print("[SAVE] Buffer je prázdny, nič neukladám.")
+        log_to_terminal("[SAVE] Buffer je prázdny, nič neukladám.")
         return
 
     try:
@@ -212,16 +230,16 @@ def save_session_to_db_and_json():
             cur.execute("INSERT INTO graph (hodnoty) VALUES (%s)", (json_data,))
         conn.commit()
         conn.close()
-        print("[DB] Celá session úspešne uložená do databázy.")
+        log_to_terminal("[DB] Celá session úspešne uložená do databázy.")
 
         with open(JSON_FILE, "a") as f:
             f.write(json_data + "\n")
-        print("[FILE] Celá session úspešne pridaná do súboru.")
+        log_to_terminal("[FILE] Celá session úspešne pridaná do súboru.")
 
         system_state['session_buffer'] = []
 
     except Exception as e:
-        print(f"[SAVE ERROR] Chyba pri ukladaní: {e}")
+        log_to_terminal(f"[SAVE ERROR] Chyba pri ukladaní: {e}")
 
 
 system_state = {
@@ -241,6 +259,8 @@ system_state = {
     "archiv_index": 0     # index záznamu
 }
 
+esp_connect_check_count = 0
+
 
 #  ROUTES – frontend
 @app.route('/')
@@ -256,7 +276,12 @@ def archive():
 #  API – príjem dát z ESP32
 @app.route('/api/update', methods=['POST'])
 def update_data():
+    global esp_connect_check_count
+
     if not system_state['connected']:
+        if esp_connect_check_count < 3:
+            log_to_terminal(f"[API] Prijaté údaje z ESP32, ale systém nie je pripojený ({esp_connect_check_count + 1}/3).")
+            esp_connect_check_count += 1
         return jsonify({
             "status": "standby",
             "connected": False,
@@ -320,7 +345,7 @@ def update_data():
 def set_setpoint():
     data = request.json
     system_state['setpoint'] = float(data.get('setpoint', 25.0))
-    print(f"[API] setpoint → {system_state['setpoint']} °C")
+    log_to_terminal(f"[API] setpoint → {system_state['setpoint']} °C")
     return jsonify({"status": "ok", "setpoint": system_state['setpoint']})
 
 
@@ -331,7 +356,7 @@ def set_mode():
     if mode not in (1, 2, 3):
         return jsonify({"status": "error", "msg": "neplatný mód"}), 400
     system_state['mode'] = mode
-    print(f"[API] mód → {mode}")
+    log_to_terminal(f"[API] mód → {mode}")
     return jsonify({"status": "ok", "mode": mode})
 
 
@@ -339,7 +364,7 @@ def set_mode():
 def start_system():
     system_state['running'] = True
     system_state['session_buffer'] = []
-    print("[API] systém SPUSTENÝ")
+    log_to_terminal("[API] systém SPUSTENÝ")
     return jsonify({"status": "ok", "running": True})
 
 
@@ -347,7 +372,7 @@ def start_system():
 def stop_system():
     system_state['running'] = False
     save_session_to_db_and_json()
-    print("[API] systém ZASTAVENÝ")
+    log_to_terminal("[API] systém ZASTAVENÝ")
     return jsonify({"status": "ok", "running": False})
 
 
@@ -356,7 +381,7 @@ def set_pwm_pump():
     data = request.json
     val = int(data.get('pwm', 150))
     system_state['target_pump_pwm'] = max(0, min(255, val))
-    print(f"[API] Target Pump PWM → {system_state['target_pump_pwm']}")
+    log_to_terminal(f"[API] Target Pump PWM → {system_state['target_pump_pwm']}")
     return jsonify({"status": "ok", "target_pump": system_state['target_pump_pwm']})
 
 
@@ -365,15 +390,25 @@ def set_pwm_tec():
     data = request.json
     val = int(data.get('pwm', 150))
     system_state['target_tec_pwm'] = max(0, min(255, val))
-    print(f"[API] Target TEC PWM → {system_state['target_tec_pwm']}")
+    log_to_terminal(f"[API] Target TEC PWM → {system_state['target_tec_pwm']}")
     return jsonify({"status": "ok", "target_tec": system_state['target_tec_pwm']})
 
 @app.route('/api/error', methods=['POST'])
 def set_error():
-    data = request.json
-    system_state['error'] = float(data.get('error', 0.0))
+    data = request.json or {}
+    error_value = data.get('error')
+
+    if error_value is None:
+        return jsonify({"status": "error", "msg": "Missing or invalid error value."}), 400
+
+    try:
+        error_value = float(error_value)
+    except (TypeError, ValueError):
+        return jsonify({"status": "error", "msg": "Error value must be a number."}), 400
+
+    system_state['error'] = error_value
     system_state['isErrorActive'] = bool(data.get('isErrorActive', False))
-    print(f"[API] Error → {system_state['error']} °C status of error: {'ACTIVE' if system_state['isErrorActive'] else 'INACTIVE'}")
+    log_to_terminal(f"[API] Error → {system_state['error']} PWM, status of error: {'ACTIVE' if system_state['isErrorActive'] else 'INACTIVE'}")
     return jsonify({"status": "ok", "error": system_state['error'], "isErrorActive": system_state['isErrorActive']})
 
 
@@ -390,7 +425,7 @@ def connect_trigger():
         system_state['running'] = False
         system_state['session_buffer'] = []
     status_text = "PRIPOJENÉ" if system_state['connected'] else "ODPOJENÉ"
-    print(f"[GATEWAY] Systém je teraz: {status_text}")
+    log_to_terminal(f"[GATEWAY] Systém je teraz: {status_text}")
     return jsonify({"status": "ok", "connected": system_state['connected']})
 
 
@@ -429,12 +464,12 @@ def get_archive_data():
 #  WEBSOCKET – udalosti
 @socketio.on('connect', namespace='/test')
 def test_connect():
-    print('[WS] klient pripojený')
+    log_to_terminal('[WS] klient pripojený')
 
 
 @socketio.on('disconnect', namespace='/test')
 def on_disconnect():
-    print('[WS] klient odpojený')
+    log_to_terminal('[WS] klient odpojený')
 
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=5003, debug=False, allow_unsafe_werkzeug=True)
+    socketio.run(app, host='0.0.0.0', port=5001, debug=False)
