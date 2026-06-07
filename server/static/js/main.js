@@ -23,7 +23,7 @@ Plotly.newPlot('pump-graph', [{
     y: graphData.pump_pwm,
     name: 'Pumpa',
     mode: 'lines',
-    line: { color: '#ff7f0e', width: 2 }
+    line: { color: '#f7d4ab', width: 2 }
 }], { ...smallGraphLayout, title: 'Pumpa (PWM)' });
 
 // Graf 2: PET / Peltier (Top Right vo Figme)
@@ -32,7 +32,7 @@ Plotly.newPlot('tec-graph', [{
     y: graphData.tec_pwm,
     name: 'Peltier',
     mode: 'lines',
-    line: { color: '#9467bd', width: 2 }
+    line: { color: '#feadab', width: 2 }
 }], { ...smallGraphLayout, title: 'PET (PWM)' });
 
 // Graf 3: Teplota (Veľký spodný graf)
@@ -43,7 +43,7 @@ Plotly.newPlot('temp-graph', [
         name: 'Nameraná teplota',
         mode: 'lines',
         fill: 'tozeroy', // Vyplnený graf pod čiarou pre lepší vzhľad
-        line: { color: '#1f77b4', width: 3 }
+        line: { color: '#6fa5cc', width: 3 }
     },
     {
         x: graphData.timestamps,
@@ -63,6 +63,18 @@ Plotly.newPlot('temp-graph', [
 // --- 3. WEBSOCKET PRIPOJENIE A UPDATE ---
 
 const socket = io("http://localhost:5003/test");
+const $terminal = $('#terminal');
+
+function log_to_terminal(message) {
+    if (!message) return;
+    const line = message.endsWith('\n') ? message : message + '\n';
+    $terminal.append(line);
+    $terminal.scrollTop($terminal[0].scrollHeight);
+}
+
+socket.on('terminal_log', (data) => {
+    log_to_terminal(data.msg);
+});
 
 socket.on('new_data', (data) => {
     const currentTime = new Date();
@@ -126,12 +138,9 @@ $(document).ready(function() {
                 const time = new Date().toLocaleTimeString();
                 if (resp.connected) {
                     $('#connect-btn').text('Connected').removeClass('btn-warning').addClass('btn-success');
-                    $('#terminal').append(`[${time}] System: CONNECTED (Brána otvorená)\n`);
                 } else {
                     $('#connect-btn').text('Connect').removeClass('btn-success').addClass('btn-warning');
-                    $('#terminal').append(`[${time}] System: DISCONNECTED (Brána zatvorená)\n`);
                 }
-                $('#terminal').scrollTop($('#terminal')[0].scrollHeight);
             }
         });
     });
@@ -145,12 +154,9 @@ $(document).ready(function() {
             data: JSON.stringify({}),
             success: function(response) {
                 const time = new Date().toLocaleTimeString();
-                $('#terminal').append(`[${time}] System: START - Regulácia a grafy spustené.\n`);
-                $('#terminal').scrollTop($('#terminal')[0].scrollHeight);
             },
             error: function(xhr) {
                 const errorMsg = xhr.responseJSON ? xhr.responseJSON.msg : "Chyba";
-                $('#terminal').append(`[${new Date().toLocaleTimeString()}] Error: ${errorMsg}\n`);
             }
         });
     });
@@ -164,8 +170,6 @@ $(document).ready(function() {
             data: JSON.stringify({}),
             success: function(response) {
                 const time = new Date().toLocaleTimeString();
-                $('#terminal').append(`[${time}] System: STOP - Regulácia pozastavená.\n`);
-                $('#terminal').scrollTop($('#terminal')[0].scrollHeight);
             }
         });
     });
@@ -182,10 +186,13 @@ $(document).ready(function() {
         } else if (selectedMode === 2) {
             $('#wrapper-pumpa').hide();     // Schová pumpu
             $('#wrapper-peltier').show();   // Zobrazí peltier
-        } else {
+        } else if (selectedMode === 3) {
             // Mód 3 (Kaskádová regulácia) - schová obe
             $('#wrapper-pumpa').hide();
             $('#wrapper-peltier').hide();
+        } else {
+            $('#wrapper-pumpa').show();
+            $('#wrapper-peltier').show();
         }
 
         // ODESLANIE NA SERVER:
@@ -196,16 +203,60 @@ $(document).ready(function() {
             data: JSON.stringify({ mode: selectedMode }),
             success: function(resp) {
                 const time = new Date().toLocaleTimeString();
-                $('#terminal').append(`[${time}] System: Mód zmenený na "${modeName}" (Mód ${resp.mode}).\n`);
-                $('#terminal').scrollTop($('#terminal')[0].scrollHeight);
             },
             error: function(xhr) {
                 const time = new Date().toLocaleTimeString();
-                $('#terminal').append(`[${time}] Error: Nepodarilo sa zmeniť mód.\n`);
-                $('#terminal').scrollTop($('#terminal')[0].scrollHeight);
             }
         });
     }).trigger('change'); // <-- Tento '.trigger('change')' hneď pri načítaní stránky zosynchronizuje vizuál s vybratou hodnotou
+
+    $('#chyba-cislo').change(function() {
+
+        let errorVal = parseInt($(this).val());
+        let isErrorActive =  $('#chyba-checkbox').is(':checked');
+        const time = new Date().toLocaleTimeString();
+
+        if (isNaN(errorVal)) {
+            return;
+        }
+
+        $.ajax({
+            url: '/api/error',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ error: errorVal, isErrorActive: isErrorActive }),
+            success: function(response) {
+                const time = new Date().toLocaleTimeString();
+            },
+            error: function(xhr) {
+                const time = new Date().toLocaleTimeString();
+            }
+        });
+
+    }).trigger('change');
+
+    $('#chyba-checkbox').change(function() {
+        let errorVal = parseInt($('#chyba-cislo').val());
+        let isErrorActive =  $(this).is(':checked');
+        const time = new Date().toLocaleTimeString();
+
+        if (isNaN(errorVal)) {
+            return;
+        }
+
+        $.ajax({
+            url: '/api/error',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ error: errorVal, isErrorActive: isErrorActive }),
+            success: function(response) {
+                const time = new Date().toLocaleTimeString();
+            },
+            error: function(xhr) {
+                const time = new Date().toLocaleTimeString();
+            }
+        });
+    }).trigger('change');
 
     const inputPumpa = document.getElementById('ovladanie-pumpa');
     const inputPeltier = document.getElementById('ovladanie-peltier');
@@ -218,8 +269,6 @@ $(document).ready(function() {
         const time = new Date().toLocaleTimeString();
 
         if (isNaN(ciselnaHodnota)) {
-            $('#terminal').append(`[${time}] Error: Zadaná hodnota pre ${label} nie je platné číslo.`);
-            $('#terminal').scrollTop($('#terminal')[0].scrollHeight);
             console.warn(`Zadaná hodnota pre ${url} nie je platné číslo.`);
             return;
         }
@@ -238,23 +287,17 @@ $(document).ready(function() {
             }
 
             const data = await response.json();
-            $('#terminal').append(`[${time}] System: ${label} PWM odoslané: ${ciselnaHodnota} (server odpovedal OK).`);
-            $('#terminal').scrollTop($('#terminal')[0].scrollHeight);
             console.log(`Úspešne aktualizované cez API (${url}):`, data);
         } catch (error) {
-            $('#terminal').append(`[${time}] Error: Nefunkčné odoslanie ${label} PWM (${error.message}).`);
-            $('#terminal').scrollTop($('#terminal')[0].scrollHeight);
             console.error(`Nastala chyba pri odosielaní na ${url}:`, error);
         }
     }
 
     async function posliSetpoint(url, hodnota, label) {
-        const ciselnaHodnota = parseFloat(hodnota); // Teplota môže byť desatinná (napr. 25.5)
+        const ciselnaHodnota = parseFloat(hodnota);
         const time = new Date().toLocaleTimeString();
 
         if (isNaN(ciselnaHodnota)) {
-            $('#terminal').append(`[${time}] Error: Zadaná hodnota pre ${label} nie je platné číslo.\n`);
-            $('#terminal').scrollTop($('#terminal')[0].scrollHeight);
             return;
         }
 
@@ -268,11 +311,7 @@ $(document).ready(function() {
             if (!response.ok) throw new Error(`Chyba pri komunikácii so serverom: ${response.status}`);
 
             const data = await response.json();
-            $('#terminal').append(`[${time}] System: ${label} odoslaný: ${ciselnaHodnota} °C (server odpovedal OK).\n`);
-            $('#terminal').scrollTop($('#terminal')[0].scrollHeight);
         } catch (error) {
-            $('#terminal').append(`[${time}] Error: Nefunkčné odoslanie ${label} (${error.message}).\n`);
-            $('#terminal').scrollTop($('#terminal')[0].scrollHeight);
         }
     }
     

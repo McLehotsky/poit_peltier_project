@@ -161,7 +161,18 @@ Po úspešnom uložení sa buffer vyčistí a systém je pripravený na ďalšie
 
 Pre vzdialený monitoring a manažment systému bola použitá platforma ThingsBoard. 
 Flask server komunikuje s ThingsBoardom pomocou MQTT protokolu na porte 
-\path{1883}. Po prijatí dát z ESP32 server publikuje telemetriu na topic 
+\path{1883} s autentifikáciou pomocou prístupového tokenu zariadenia. 
+
+MQTT klient beží asynchrónne v separátnom vlákne (\texttt{loop\_start()}), čím neblokuje hlavnú Flask aplikáciu. Konfigurácia pripojenia je definovaná nasledovne:
+
+\begin{verbatim}
+TB_HOST  = "thingsboard.cloud"
+TB_PORT  = 1883
+TB_TOKEN = <device_access_token>
+\end{verbatim}
+
+
+Po prijatí dát z ESP32 server publikuje telemetriu na topic 
 \path{v1/devices/me/telemetry}.
 
 Pripojenie k ThingsBoardu je v backendovej časti aplikácie definované pomocou parametrov 
@@ -207,8 +218,9 @@ Do ThingsBoardu sa odosielajú hlavné veličiny uvedené v tabuľke \ref{tab:th
 }
 
 Okrem číselných hodnôt sa do ThingsBoardu odosiela aj textový atribút \path{terminal}, 
-ktorý zobrazuje stručný diagnostický stav systému. Obsahuje napríklad aktuálnu teplotu, 
-regulačnú odchýlku, stav RUN/STOP a aktívny mód.
+ktorý zobrazuje stručný diagnostický stav systému. 
+
+Dashboard v ThingsBoarde je rozdelený na dva stavy. 
 
 V prostredí ThingsBoard bol vytvorený dashboard \textit{Peltier Control System}. Dashboard je 
 rozdelený na dva hlavné stavy: \textit{Default} a \textit{Archív}. Stav \textit{Default} slúži 
@@ -319,6 +331,27 @@ PET (\path{a_pet}) & \path{tec_pwm} & posledných 24 hodín \\
     \safeimage{obrazky/thingsboard_default.png}{0.95\textwidth}{ThingsBoard dashboard v stave Default}
     \label{fig:thingsboard_default}
 \end{figure}
+
+Stav \textit{Archív} slúži na zobrazenie historických dát s časovým oknom 1 deň.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lll}
+\toprule
+\textbf{Widget (ID)} & \textbf{Sledovaná veličina} & \textbf{Časové okno} \\
+\midrule
+Teplota [C°] (\texttt{a\_teplota}) & \texttt{temperature}, \texttt{setpoint} & Posledných 24 hodín \\
+Pumpa (\texttt{a\_pumpa})          & \texttt{pump\_pwm}                     & Posledných 24 hodín \\
+PET (\texttt{a\_pet})              & \texttt{tec\_pwm}                      & Posledných 24 hodín \\
+\bottomrule
+\end{tabular}
+\caption{Archívne widgety}
+\end{table}
+
+Stránka archívu umožňuje prezerať uložené záznamy meraní. 
+Widget \texttt{a\_filter} v ThingsBoard dashboarde obsahuje tri ovládacie prvky:
+
+TU DOPLNIT ESTE!!!!!!
 
 \begin{figure}[H]
     \centering
