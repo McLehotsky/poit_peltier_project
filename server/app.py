@@ -354,7 +354,7 @@ def set_setpoint():
 def set_mode():
     data = request.json
     mode = int(data.get('mode', 1))
-    if mode not in (1, 2, 3):
+    if mode not in (1, 2, 3, 4):
         return jsonify({"status": "error", "msg": "neplatný mód"}), 400
     system_state['mode'] = mode
     log_to_terminal(f"[API] mód → {mode}")
