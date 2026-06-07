@@ -207,6 +207,52 @@ $(document).ready(function() {
         });
     }).trigger('change'); // <-- Tento '.trigger('change')' hneď pri načítaní stránky zosynchronizuje vizuál s vybratou hodnotou
 
+    $('#chyba-cislo').change(function() {
+
+        let errorVal = parseInt($(this).val());
+        let isErrorActive =  $('#chyba-checkbox').is(':checked');
+
+        $.ajax({
+            url: '/api/error',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ error: errorVal, isErrorActive: isErrorActive }),
+            success: function(response) {
+                const time = new Date().toLocaleTimeString();
+                $('#terminal').append(`[${time}] System: Chyba nastavená na ${errorVal} °C, status: ${response.isErrorActive ? 'ACTIVE' : 'INACTIVE'}.\n`);
+                $('#terminal').scrollTop($('#terminal')[0].scrollHeight);
+            },
+            error: function(xhr) {
+                const time = new Date().toLocaleTimeString();
+                $('#terminal').append(`[${time}] Error: Nepodarilo sa nastaviť chybu.\n`);
+                $('#terminal').scrollTop($('#terminal')[0].scrollHeight);
+            }
+        });
+
+    }).trigger('change');
+
+    $('#chyba-checkbox').change(function() {
+        let errorVal = parseInt($('#chyba-cislo').val());
+        let isErrorActive =  $(this).is(':checked');
+
+        $.ajax({
+            url: '/api/error',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ error: errorVal, isErrorActive: isErrorActive }),
+            success: function(response) {
+                const time = new Date().toLocaleTimeString();
+                $('#terminal').append(`[${time}] System: Chyba nastavená na ${errorVal} °C, status: ${response.isErrorActive ? 'ACTIVE' : 'INACTIVE'}.\n`);
+                $('#terminal').scrollTop($('#terminal')[0].scrollHeight);
+            },
+            error: function(xhr) {
+                const time = new Date().toLocaleTimeString();
+                $('#terminal').append(`[${time}] Error: Nepodarilo se nastavit chybu.\n`);
+                $('#terminal').scrollTop($('#terminal')[0].scrollHeight);
+            }
+        });
+    }).trigger('change');
+
     const inputPumpa = document.getElementById('ovladanie-pumpa');
     const inputPeltier = document.getElementById('ovladanie-peltier');
     const inputTeplota = document.getElementById('ovladanie-teplota');
@@ -249,7 +295,7 @@ $(document).ready(function() {
     }
 
     async function posliSetpoint(url, hodnota, label) {
-        const ciselnaHodnota = parseFloat(hodnota); // Teplota môže byť desatinná (napr. 25.5)
+        const ciselnaHodnota = parseFloat(hodnota);
         const time = new Date().toLocaleTimeString();
 
         if (isNaN(ciselnaHodnota)) {
