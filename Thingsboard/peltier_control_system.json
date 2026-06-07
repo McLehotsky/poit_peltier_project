@@ -1262,7 +1262,7 @@
                 "openRightLayout": false,
                 "setEntityId": true,
                 "stateEntityParamName": null,
-                "customFunction": "const $injector = widgetContext.$scope.$injector;\nconst attributeService = $injector.get(widgetContext.servicesMap.get('attributeService'));\nconst entityId = widgetContext.defaultSubscription.targetEntityId;\nif (entityId) {\n    attributeService.saveEntityAttributes(entityId, 'SHARED_SCOPE', [{key:'command',value:'connect'}]).subscribe(\n        () => widgetContext.showSuccessToast('Connect odoslaný!'),\n        (err) => widgetContext.showErrorToast('Chyba: ' + err)\n    );\n}",
+                "customFunction": "{\n    let entityId = null;\n    try {\n        entityId = widgetContext.stateController.getEntityId(\"9df0b2ac-ce5e-8dee-addb-cff4f20ba87e\");\n    } catch(ex) {}\n    if (!entityId) {\n        entityId = { id: \"22336720-43e2-11f1-b7a8-75be0d5c4df2\", entityType: \"DEVICE\" };\n    }\n    widgetContext.http.post('/api/rpc/oneway/' + entityId.id, {\n        method: \"setConnected\",\n        params: true,\n        timeout: 5000\n    }).subscribe(\n        function() { widgetContext.showSuccessToast('Pripojené!'); },\n        function(e) { widgetContext.showErrorToast('Chyba: ' + e.status); }\n    );\n}",
                 "openInSeparateDialog": false,
                 "openInPopover": false
               }
@@ -1405,7 +1405,7 @@
                 "openRightLayout": false,
                 "setEntityId": true,
                 "stateEntityParamName": null,
-                "customFunction": "const $injector = widgetContext.$scope.$injector;\nconst attributeService = $injector.get(widgetContext.servicesMap.get('attributeService'));\nconst entityId = widgetContext.defaultSubscription.targetEntityId;\nif (entityId) {\n    attributeService.saveEntityAttributes(entityId, 'SHARED_SCOPE', [{key:'command',value:'start'}]).subscribe(\n        () => widgetContext.showSuccessToast('Start odoslaný!'),\n        (err) => widgetContext.showErrorToast('Chyba: ' + err)\n    );\n}",
+                "customFunction": "{\n    let entityId = null;\n    try {\n        entityId = widgetContext.stateController.getEntityId(\"9df0b2ac-ce5e-8dee-addb-cff4f20ba87e\");\n    } catch(ex) {}\n    if (!entityId) {\n        entityId = { id: \"22336720-43e2-11f1-b7a8-75be0d5c4df2\", entityType: \"DEVICE\" };\n    }\n    widgetContext.http.post('/api/rpc/oneway/' + entityId.id, {\n        method: \"setRunning\",\n        params: true,\n        timeout: 5000\n    }).subscribe(\n        function() { widgetContext.showSuccessToast('Systém SPUSTENÝ'); },\n        function(e) { widgetContext.showErrorToast('Chyba: ' + e.status); }\n    );\n}",
                 "openInSeparateDialog": false,
                 "openInPopover": false
               }
@@ -1548,7 +1548,7 @@
                 "openRightLayout": false,
                 "setEntityId": true,
                 "stateEntityParamName": null,
-                "customFunction": "const $injector = widgetContext.$scope.$injector;\nconst attributeService = $injector.get(widgetContext.servicesMap.get('attributeService'));\nconst entityId = widgetContext.defaultSubscription.targetEntityId;\nif (entityId) {\n    attributeService.saveEntityAttributes(entityId, 'SHARED_SCOPE', [{key:'command',value:'stop'}]).subscribe(\n        () => widgetContext.showSuccessToast('Stop odoslaný!'),\n        (err) => widgetContext.showErrorToast('Chyba: ' + err)\n    );\n}",
+                "customFunction": "{\n    let entityId = null;\n    try {\n        entityId = widgetContext.stateController.getEntityId(\"9df0b2ac-ce5e-8dee-addb-cff4f20ba87e\");\n    } catch(ex) {}\n    if (!entityId) {\n        entityId = { id: \"22336720-43e2-11f1-b7a8-75be0d5c4df2\", entityType: \"DEVICE\" };\n    }\n    widgetContext.http.post('/api/rpc/oneway/' + entityId.id, {\n        method: \"setRunning\",\n        params: false,\n        timeout: 5000\n    }).subscribe(\n        function() { widgetContext.showSuccessToast('Systém ZASTAVENÝ'); },\n        function(e) { widgetContext.showErrorToast('Chyba: ' + e.status); }\n    );\n}",
                 "openInSeparateDialog": false,
                 "openInPopover": false
               }
@@ -1691,7 +1691,7 @@
                 "openRightLayout": false,
                 "setEntityId": true,
                 "stateEntityParamName": null,
-                "customFunction": "let telemetryService = widgetContext.telemetryService;\r\nlet entityId = widgetContext.stateController.getEntityId();\r\n\r\nif (entityId) {\r\n    // Toto simuluje správu, ktorú inak posielaš cez CMD\r\n    let telemetry = {\r\n        control_mode: 1 // Tu zmeň na 2 alebo 3 pre ostatné tlačidlá\r\n    };\r\n\r\n    telemetryService.saveEntityTelemetry(entityId, telemetry).subscribe(\r\n        function success() {\r\n            widgetContext.showSuccessToast('Mód ' + telemetry.control_mode + ' odoslaný do grafu!');\r\n        }\r\n    );\r\n}",
+                "customFunction": "{\n    let entityId = null;\n    try {\n        entityId = widgetContext.stateController.getEntityId(\"9df0b2ac-ce5e-8dee-addb-cff4f20ba87e\");\n    } catch(ex) {}\n    if (!entityId) {\n        entityId = { id: \"22336720-43e2-11f1-b7a8-75be0d5c4df2\", entityType: \"DEVICE\" };\n    }\n    widgetContext.http.post('/api/plugins/telemetry/' + entityId.entityType + '/' + entityId.id + '/attributes/SHARED_SCOPE', {\n        control_mode: 1\n    }).subscribe(\n        function() { widgetContext.showSuccessToast('Mód 1 aktivovaný'); },\n        function(e) { widgetContext.showErrorToast('Chyba: ' + e.status); }\n    );\n}",
                 "openInSeparateDialog": false,
                 "openInPopover": false
               }
@@ -1834,7 +1834,7 @@
                 "openRightLayout": false,
                 "setEntityId": true,
                 "stateEntityParamName": null,
-                "customFunction": "const $injector = widgetContext.$scope.$injector;\r\nconst attributeService = $injector.get(widgetContext.servicesMap.get('attributeService'));\r\n\r\n// Získanie ID zariadenia priamo z widgetu\r\nconst entityId = widgetContext.defaultSubscription.targetEntityId;\r\n\r\nif (entityId) {\r\n    attributeService.saveEntityAttributes(entityId, \"SHARED_SCOPE\", [{\r\n        key: \"control_mode\",\r\n        value: 2 // Tu daj 1, 2 alebo 3 podľa tlačidla\r\n    }]).subscribe(\r\n        () => { console.log('Mód zmenený!'); },\r\n        (err) => { console.error('Chyba:', err); }\r\n    );\r\n}",
+                "customFunction": "{\n    let entityId = null;\n    try {\n        entityId = widgetContext.stateController.getEntityId(\"9df0b2ac-ce5e-8dee-addb-cff4f20ba87e\");\n    } catch(ex) {}\n    if (!entityId) {\n        entityId = { id: \"22336720-43e2-11f1-b7a8-75be0d5c4df2\", entityType: \"DEVICE\" };\n    }\n    widgetContext.http.post('/api/plugins/telemetry/' + entityId.entityType + '/' + entityId.id + '/attributes/SHARED_SCOPE', {\n        control_mode: 2\n    }).subscribe(\n        function() { widgetContext.showSuccessToast('Mód 2 aktivovaný'); },\n        function(e) { widgetContext.showErrorToast('Chyba: ' + e.status); }\n    );\n}",
                 "openInSeparateDialog": false,
                 "openInPopover": false
               }
@@ -1977,7 +1977,7 @@
                 "openRightLayout": false,
                 "setEntityId": true,
                 "stateEntityParamName": null,
-                "customFunction": "const $injector = widgetContext.$scope.$injector;\r\nconst attributeService = $injector.get(widgetContext.servicesMap.get('attributeService'));\r\n\r\n// Získanie ID zariadenia priamo z widgetu\r\nconst entityId = widgetContext.defaultSubscription.targetEntityId;\r\n\r\nif (entityId) {\r\n    attributeService.saveEntityAttributes(entityId, \"SHARED_SCOPE\", [{\r\n        key: \"control_mode\",\r\n        value: 3 // Tu daj 1, 2 alebo 3 podľa tlačidla\r\n    }]).subscribe(\r\n        () => { console.log('Mód zmenený!'); },\r\n        (err) => { console.error('Chyba:', err); }\r\n    );\r\n}",
+                "customFunction": "{\n    let entityId = null;\n    try {\n        entityId = widgetContext.stateController.getEntityId(\"9df0b2ac-ce5e-8dee-addb-cff4f20ba87e\");\n    } catch(ex) {}\n    if (!entityId) {\n        entityId = { id: \"22336720-43e2-11f1-b7a8-75be0d5c4df2\", entityType: \"DEVICE\" };\n    }\n    widgetContext.http.post('/api/plugins/telemetry/' + entityId.entityType + '/' + entityId.id + '/attributes/SHARED_SCOPE', {\n        control_mode: 3\n    }).subscribe(\n        function() { widgetContext.showSuccessToast('Mód 3 aktivovaný'); },\n        function(e) { widgetContext.showErrorToast('Chyba: ' + e.status); }\n    );\n}",
                 "openInSeparateDialog": false,
                 "openInPopover": false
               }
@@ -2001,7 +2001,7 @@
               "entityAliasId": "9df0b2ac-ce5e-8dee-addb-cff4f20ba87e",
               "dataKeys": [
                 {
-                  "name": "pump_pwm",
+                  "name": "target_pump_pwm",
                   "type": "timeseries",
                   "label": "Ovládanie: Pump PWM",
                   "color": "#E521F3",
@@ -2085,7 +2085,7 @@
               "entityAliasId": "9df0b2ac-ce5e-8dee-addb-cff4f20ba87e",
               "dataKeys": [
                 {
-                  "name": "tec_pwm",
+                  "name": "target_tec_pwm",
                   "type": "timeseries",
                   "label": "Ovládanie: TEC PWM",
                   "color": "#FF5722",
@@ -2245,29 +2245,16 @@
         "config": {
           "datasources": [
             {
-              "type": "entity",
+              "type": "device",
               "name": "",
-              "entityAliasId": "9df0b2ac-ce5e-8dee-addb-cff4f20ba87e",
+              "deviceId": "22336720-43e2-11f1-b7a8-75be0d5c4df2",
               "dataKeys": [
                 {
                   "name": "terminal",
-                  "type": "timeseries",
-                  "label": "Terminal",
-                  "color": "#607d8b",
-                  "settings": {
-                    "dataKeyType": "timeseries",
-                    "dataKeyValueType": "string",
-                    "required": false,
-                    "isEditable": "disabled",
-                    "appearance": "outline",
-                    "subscriptSizing": "fixed"
-                  },
-                  "aggregationType": "NONE",
-                  "units": null,
-                  "decimals": null,
-                  "funcBody": null,
-                  "usePostProcessing": null,
-                  "postFuncBody": null
+                  "type": "attribute",
+                  "label": "terminal",
+                  "color": "#2196f3",
+                  "settings": {}
                 }
               ],
               "alarmFilterConfig": {
@@ -2345,6 +2332,59 @@
                     "step": 1,
                     "minValue": 1,
                     "maxValue": 3
+                  },
+                  "aggregationType": "NONE",
+                  "units": null,
+                  "decimals": null,
+                  "funcBody": null,
+                  "usePostProcessing": null,
+                  "postFuncBody": null
+                },
+                {
+                  "name": "archiv_source",
+                  "type": "timeseries",
+                  "label": "Zdroj archívu",
+                  "color": "#4CAF50",
+                  "settings": {
+                    "dataKeyType": "timeseries",
+                    "dataKeyValueType": "select",
+                    "required": false,
+                    "isEditable": "editable",
+                    "appearance": "outline",
+                    "subscriptSizing": "fixed",
+                    "selectOptions": [
+                      {
+                        "value": "0",
+                        "label": "Databáza"
+                      },
+                      {
+                        "value": "1",
+                        "label": "Súbor"
+                      }
+                    ]
+                  },
+                  "aggregationType": "NONE",
+                  "units": null,
+                  "decimals": null,
+                  "funcBody": null,
+                  "usePostProcessing": null,
+                  "postFuncBody": null
+                },
+                {
+                  "name": "archiv_index",
+                  "type": "timeseries",
+                  "label": "Index záznamu",
+                  "color": "#FF9800",
+                  "settings": {
+                    "dataKeyType": "timeseries",
+                    "dataKeyValueType": "integer",
+                    "required": false,
+                    "isEditable": "editable",
+                    "appearance": "outline",
+                    "subscriptSizing": "fixed",
+                    "step": 1,
+                    "minValue": 0,
+                    "maxValue": 9999
                   },
                   "aggregationType": "NONE",
                   "units": null,
@@ -3548,7 +3588,7 @@
               },
               "w_teplota": {
                 "sizeX": 13,
-                "sizeY": 5,
+                "sizeY": 6,
                 "row": 6,
                 "col": 11,
                 "preserveAspectRatio": false,
