@@ -3,3 +3,4 @@ venv/
 __pycache__/
 server/static/files/test.txt
 .vscode/
+arduino/secrets.h
