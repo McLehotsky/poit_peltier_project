@@ -56,10 +56,11 @@ config = configparser.ConfigParser()
 config.read('config.cfg')
 
 #  THINGSBOARD KONFIGURÁCIA
-TB_HOST = "thingsboard.cloud"
+TB_HOST = "eu.thingsboard.cloud"
 TB_PORT = 1883
-TB_TOKEN = "ncgt93ixsrkl8ngwt1cs"
+# TB_TOKEN = "ncgt93ixsrkl8ngwt1cs"
 # TB_TOKEN = "X9ttptsR0dW5gvE3wYTT"
+TB_TOKEN = "" # toto použiť ak nepracujeme s thingsboard
 
 
 
@@ -472,4 +473,4 @@ def on_disconnect():
     log_to_terminal('[WS] klient odpojený')
 
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=5001, debug=False)
+    socketio.run(app, host='0.0.0.0', port=5003, debug=False)
