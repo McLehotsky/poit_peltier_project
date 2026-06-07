@@ -1,0 +1,105 @@
+\documentclass[article,utf8]{FEIstyle}
+
+% Doplnkové balíky, ktoré budeme potrebovať
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{tabularx}
+\usepackage{ragged2e}
+\usepackage{xurl}
+\urlstyle{same}
+
+\FEIauthor{Bc. Zorvan Samuel, Bc. Baáš Jozef, Bc. Lehotský Martin, Bc. Lomenová Ivana, Bc. Kyrylová Anhelina, Bc. Fait Martin, Bc. Vutianov Nikita}
+\FEItitle{Inteligentný IoT systém riadenia teploty kvapaliny pomocou Peltierovho článku}
+\FEItitleEn{Intelligent IoT System for Liquid Temperature Control Using a Peltier Module}
+\FEIschool{Slovenská technická univerzita v Bratislave}
+\FEIfaculty{Fakulta elektrotechniky a informatiky}
+
+% Bezpečné vkladanie obrázkov
+% Ak obrázok existuje, vloží sa. Ak neexistuje, zobrazí sa rámček.
+\newcommand{\safeimage}[3]{%
+\IfFileExists{#1}{%
+\includegraphics[width=#2]{#1}%
+}{%
+\fbox{\parbox{0.85\textwidth}{\centering Obrázok \texttt{\detokenize{#1}} bude doplnený.}}%
+}%
+\caption{#3}%
+}
+
+\lstdefinelanguage{json}{
+    basicstyle=\ttfamily\small,
+    showstringspaces=false,
+    breaklines=true,
+    morestring=[b]"
+}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  numbers=left,
+  numberstyle=\tiny,
+  keywordstyle=\color{blue},
+  commentstyle=\color{gray}
+}
+
+\begin{document}
+\sloppy
+
+\FEIpdfInfo
+
+\begin{titlepage}
+    \centering
+
+    \vspace*{2.0cm}
+
+    {\Large\bfseries Ústav automobilovej mechatroniky,\par}
+    \vspace{0.6cm}
+    {\Large\bfseries FEI STU v Bratislave\par}
+
+    \vfill
+
+    {\large\bfseries Pokročilé informačné technológie\par}
+    \vspace{0.6cm}
+
+    {\LARGE\bfseries Tímový projekt\par}
+    \vspace{0.6cm}
+
+    {\Large\bfseries Inteligentný IoT systém riadenia teploty kvapaliny pomocou Peltierovho článku\par}
+    \vspace{0.2cm}
+
+    \vfill
+
+    \begin{flushleft}
+    \hspace*{0cm}
+    \begin{tabular}{@{}l@{\hspace{0.8cm}}l@{}}
+        \textbf{Autori:} & Bc. Zorvan Samuel, \\
+                         & Bc. Baáš Jozef, \\
+                         & Bc. Lehotský Martin, \\
+                         & Bc. Lomenová Ivana, \\
+                         & Bc. Kyrylová Anhelina, \\
+                         & Bc. Fait Martin, \\
+                         & Bc. Vutianov Nikita
+    \end{tabular}
+    \end{flushleft}
+
+    \vspace{1.2cm}
+
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\input{kapitoly/kapitola1}
+\input{kapitoly/kapitola2}
+\input{kapitoly/kapitola3}
+\input{kapitoly/kapitola4}
+\input{kapitoly/kapitola5}
+\input{kapitoly/kapitola6}
+\input{kapitoly/kapitola7}
+
+\end{document}

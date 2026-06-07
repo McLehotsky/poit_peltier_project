@@ -1,0 +1,114 @@
+% !TEX root = ../main.tex
+
+\section{Požiadavky na systém}
+
+Na základe zadania boli požiadavky na riešený systém rozdelené do štyroch oblastí. Prvou oblasťou 
+sú funkčné požiadavky, ktoré určujú, čo má systém umožňovať používateľovi a aké správanie sa od 
+neho očakáva. Ďalšie oblasti sa týkajú hardvérovej realizácie, softvérového riadenia a dátovej 
+časti vrátane IoT integrácie.
+
+Takéto rozdelenie umožňuje oddeliť požadované funkcie systému od technických prostriedkov, 
+ktorými sú tieto funkcie realizované. Funkčné požiadavky opisujú očakávané správanie systému, 
+zatiaľ čo technické požiadavky určujú, aké hardvérové, softvérové a dátové časti sú potrebné 
+na jeho realizáciu.
+
+\subsection{Funkčné požiadavky}
+
+Systém má umožňovať meranie, sledovanie a riadenie teploty kvapaliny v uzavretom hydraulickom okruhu. 
+Používateľ má mať možnosť sledovať aktuálny stav systému, meniť vybrané riadiace parametre a spúšťať 
+alebo zastavovať meranie.
+
+Z funkčného hľadiska má systém zabezpečovať najmä:
+
+\begin{itemize}
+    \item meranie aktuálnej teploty chladiacej kvapaliny,
+    \item reguláciu teploty pomocou Peltierovho článku a vodnej pumpy,
+    \item zobrazenie aktuálnych hodnôt v reálnom čase,
+    \item nastavenie požadovanej teploty,
+    \item zapnutie a vypnutie systému z webového rozhrania,
+    \item prepínanie medzi regulačnými módmi,
+    \item manuálne nastavenie PWM hodnoty pumpy a Peltierovho článku,
+    \item simuláciu tepelnej záťaže pomocou vyhrievacieho telesa,
+    \item záznam priebehu merania,
+    \item zobrazenie historických meraní,
+    \item vzdialené monitorovanie a základné ovládanie cez ThingsBoard.
+\end{itemize}
+
+Hlavnou funkciou systému je sledovať teplotu kvapaliny a na základe nastavenej požadovanej hodnoty 
+ovplyvňovať akčné členy systému. Okrem samotného merania má systém poskytovať aj používateľské rozhranie, 
+cez ktoré je možné sledovať aktuálny priebeh a meniť vybrané parametre.
+
+\subsection{Technické požiadavky na hardvér}
+
+Hardvérová časť má vytvoriť reálnu tepelnú sústavu, na ktorej je možné pozorovať zmenu teploty 
+kvapaliny a testovať rôzne spôsoby jej riadenia. Základom je uzavretý hydraulický okruh doplnený 
+o výkonové prvky, senzorickú časť a riadiacu elektroniku.
+
+Z hardvérového hľadiska je potrebné zabezpečiť:
+
+\begin{itemize}
+    \item uzavretý vodný okruh pozostávajúci z nádržky, pumpy, hadičiek a výmenníka tepla,
+    \item Peltierov článok ako hlavný chladiaci prvok,
+    \item účinné chladenie teplej strany Peltierovho článku pomocou chladiča a ventilátora,
+    \item digitálne meranie teploty kvapaliny pomocou snímača umiestneného v nádržke,
+    \item výkonové rozhranie pre riadenie Peltierovho článku, pumpy a vyhrievacieho telesa,
+    \item stabilné napájanie výkonovej aj riadiacej časti systému,
+    \item oddelenie výkonovej časti od riadiacej elektroniky,
+    \item lokálne zobrazovanie vybraných údajov na LCD displeji,
+    \item bezpečné mechanické upevnenie a prehľadné prepojenie jednotlivých častí.
+\end{itemize}
+
+Dôležitou požiadavkou je najmä bezpečná prevádzka Peltierovho článku. Teplá strana článku musí byť 
+počas jeho činnosti aktívne chladená, pretože nedostatočný odvod tepla môže viesť k zníženiu účinnosti 
+alebo k poškodeniu článku. Rovnako je potrebné zohľadniť vyšší prúdový odber výkonových prvkov a vhodne 
+dimenzovať vodiče, svorky a napájanie.
+
+\subsection{Požiadavky na softvér a riadenie}
+
+Softvérová časť má zabezpečiť zber údajov z hardvéru, spracovanie nameraných hodnôt, komunikáciu 
+medzi jednotlivými časťami systému a riadenie akčných členov. Riešenie je rozdelené medzi 
+mikrokontrolér ESP32, backendový server a webové rozhranie.
+
+Softvérové riešenie má zabezpečiť:
+
+\begin{itemize}
+    \item čítanie teploty zo snímača,
+    \item generovanie PWM signálov pre Peltierov článok a vodnú pumpu,
+    \item odosielanie nameraných údajov z mikrokontroléra na server,
+    \item spracovanie aktuálneho stavu systému na backendovej strane,
+    \item vytvorenie REST API pre príjem dát a ovládanie systému,
+    \item realtime prenos údajov do webového rozhrania pomocou WebSocket komunikácie,
+    \item webový dashboard s grafmi a ovládacími prvkami,
+    \item možnosť nastavenia setpointu, regulačného módu a PWM hodnôt,
+    \item prípravu regulačných algoritmov pre jednotlivé módy,
+    \item podporu archivácie a zobrazenia historických meraní.
+\end{itemize}
+
+Riadenie systému má byť navrhnuté tak, aby bolo možné pracovať s tromi regulačnými módmi. 
+Prvý mód využíva ako hlavný regulačný zásah výkon Peltierovho článku, druhý mód zmenu prietoku pumpy a 
+tretí mód kombináciu oboch akčných členov.
+
+\subsection{Požiadavky na dáta a IoT integráciu}
+
+Dátová a IoT časť má zabezpečiť, aby bolo možné systém sledovať lokálne aj vzdialene a aby bolo možné 
+spätne analyzovať priebeh meraní. Namerané hodnoty nemajú slúžiť iba na aktuálne zobrazenie, 
+ale aj na archiváciu, testovanie regulačných módov a vyhodnocovanie správania systému.
+
+Dátová časť má zabezpečiť:
+
+\begin{itemize}
+    \item priebežné spracovanie aktuálnych hodnôt,
+    \item zobrazenie údajov vo webovom rozhraní v reálnom čase,
+    \item ukladanie historických meraní do SQL databázy,
+    \item záložné ukladanie meraní do súboru vo formáte JSON,
+    \item možnosť načítania historických dát a ich zobrazenia v grafoch,
+    \item odosielanie telemetrických údajov do platformy ThingsBoard,
+    \item vytvorenie ThingsBoard dashboardu pre vizualizáciu veličín,
+    \item spracovanie vybraných vzdialených príkazov z ThingsBoardu.
+\end{itemize}
+
+Do ThingsBoardu majú byť prenášané najmä veličiny potrebné na sledovanie stavu systému, 
+napríklad aktuálna teplota, požadovaná teplota, regulačná odchýlka, PWM hodnota pumpy, 
+PWM hodnota Peltierovho článku, aktuálny mód a informácia o tom, či je systém spustený. 
+Vďaka tomu je možné systém monitorovať aj mimo lokálneho webového rozhrania.
+

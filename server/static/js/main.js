@@ -36,14 +36,23 @@ Plotly.newPlot('tec-graph', [{
 }], { ...smallGraphLayout, title: 'PET (PWM)' });
 
 // Graf 3: Teplota (Veľký spodný graf)
-Plotly.newPlot('temp-graph', [{
-    x: graphData.timestamps,
-    y: graphData.temperature,
-    name: 'Teplota',
-    mode: 'lines',
-    fill: 'tozeroy', // Vyplnený graf pod čiarou pre lepší vzhľad
-    line: { color: '#6fa5cc', width: 3 }
-}], { 
+Plotly.newPlot('temp-graph', [
+    {
+        x: graphData.timestamps,
+        y: graphData.temperature,
+        name: 'Nameraná teplota',
+        mode: 'lines',
+        fill: 'tozeroy', // Vyplnený graf pod čiarou pre lepší vzhľad
+        line: { color: '#6fa5cc', width: 3 }
+    },
+    {
+        x: graphData.timestamps,
+        y: graphData.target_temperature,
+        name: 'Žiadaná teplota',
+        mode: 'lines',
+        line: { color: '#ef4444', width: 2, dash: 'dash' }
+    }
+], { 
     title: 'Teplota [°C]',
     xaxis: { type: 'date' },
     yaxis: { range: [10, 30] },
@@ -53,7 +62,7 @@ Plotly.newPlot('temp-graph', [{
 
 // --- 3. WEBSOCKET PRIPOJENIE A UPDATE ---
 
-const socket = io("http://localhost:5001/test");
+const socket = io("http://localhost:5003/test");
 
 socket.on('new_data', (data) => {
     const currentTime = new Date();
@@ -62,12 +71,14 @@ socket.on('new_data', (data) => {
     const temp = data.temperature ?? 0;
     const pump = data.pump_pwm ?? 0;
     const tec = data.tec_pwm ?? 0;
+    const setpoint = data.setpoint ?? 0;
 
     // Pridanie dát do polí
     graphData.timestamps.push(currentTime);
     graphData.temperature.push(temp);
     graphData.pump_pwm.push(pump);
     graphData.tec_pwm.push(tec);
+    graphData.target_temperature.push(setpoint);
 
     // Posun grafu (limit bodov)
     if (graphData.timestamps.length > MAX_DATA_POINTS) {
@@ -75,6 +86,7 @@ socket.on('new_data', (data) => {
         graphData.temperature.shift();
         graphData.pump_pwm.shift();
         graphData.tec_pwm.shift();
+        graphData.target_temperature.shift();
     }
 
     // Aktualizácia Pumpy
@@ -90,30 +102,10 @@ socket.on('new_data', (data) => {
     }, {}, [0]);
 
     // Aktualizácia Teploty
-    Plotly.newPlot('temp-graph', [
-        // 1. Krivka: Nameraná teplota
-        {
-            x: graphData.timestamps,
-            y: graphData.temperature,
-            name: 'Nameraná teplota',
-            mode: 'lines',
-            fill: 'tozeroy', // Vyplnený graf pod čiarou pre lepší vzhľad
-            line: { color: '#6fa5cc', width: 3 }
-        },
-        // 2. Krivka: Setpoint (cieľová teplota)
-        {
-            x: graphData.timestamps,
-            y: graphData.target_temperature,
-            name: 'Žiadaná teplota',
-            mode: 'lines',
-            line: { color: '#66bb6a', width: 2, dash: 'dash' } // Červená prerušovaná čiara
-        }
-    ], { 
-        title: 'Teplota [°C]',
-        xaxis: { type: 'date' },
-        yaxis: { range: [10, 30] },
-        margin: { t: 50, b: 50, l: 50, r: 50 }
-    }, {}, [0]);
+    Plotly.update('temp-graph', {
+        x: [graphData.timestamps, graphData.timestamps],
+        y: [graphData.temperature, graphData.target_temperature]
+    }, {}, [0, 1]);
 });
 
 socket.on('connect', () => console.log('WebSocket pripojený - 3 grafy aktívne.'));
@@ -215,6 +207,52 @@ $(document).ready(function() {
         });
     }).trigger('change'); // <-- Tento '.trigger('change')' hneď pri načítaní stránky zosynchronizuje vizuál s vybratou hodnotou
 
+    $('#chyba-cislo').change(function() {
+
+        let errorVal = parseInt($(this).val());
+        let isErrorActive =  $('#chyba-checkbox').is(':checked');
+
+        $.ajax({
+            url: '/api/error',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ error: errorVal, isErrorActive: isErrorActive }),
+            success: function(response) {
+                const time = new Date().toLocaleTimeString();
+                $('#terminal').append(`[${time}] System: Chyba nastavená na ${errorVal} °C, status: ${response.isErrorActive ? 'ACTIVE' : 'INACTIVE'}.\n`);
+                $('#terminal').scrollTop($('#terminal')[0].scrollHeight);
+            },
+            error: function(xhr) {
+                const time = new Date().toLocaleTimeString();
+                $('#terminal').append(`[${time}] Error: Nepodarilo sa nastaviť chybu.\n`);
+                $('#terminal').scrollTop($('#terminal')[0].scrollHeight);
+            }
+        });
+
+    }).trigger('change');
+
+    $('#chyba-checkbox').change(function() {
+        let errorVal = parseInt($('#chyba-cislo').val());
+        let isErrorActive =  $(this).is(':checked');
+
+        $.ajax({
+            url: '/api/error',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ error: errorVal, isErrorActive: isErrorActive }),
+            success: function(response) {
+                const time = new Date().toLocaleTimeString();
+                $('#terminal').append(`[${time}] System: Chyba nastavená na ${errorVal} °C, status: ${response.isErrorActive ? 'ACTIVE' : 'INACTIVE'}.\n`);
+                $('#terminal').scrollTop($('#terminal')[0].scrollHeight);
+            },
+            error: function(xhr) {
+                const time = new Date().toLocaleTimeString();
+                $('#terminal').append(`[${time}] Error: Nepodarilo se nastavit chybu.\n`);
+                $('#terminal').scrollTop($('#terminal')[0].scrollHeight);
+            }
+        });
+    }).trigger('change');
+
     const inputPumpa = document.getElementById('ovladanie-pumpa');
     const inputPeltier = document.getElementById('ovladanie-peltier');
     const inputTeplota = document.getElementById('ovladanie-teplota');
@@ -257,7 +295,7 @@ $(document).ready(function() {
     }
 
     async function posliSetpoint(url, hodnota, label) {
-        const ciselnaHodnota = parseFloat(hodnota); // Teplota môže byť desatinná (napr. 25.5)
+        const ciselnaHodnota = parseFloat(hodnota);
         const time = new Date().toLocaleTimeString();
 
         if (isNaN(ciselnaHodnota)) {
@@ -288,7 +326,7 @@ $(document).ready(function() {
     if (inputPumpa) {
         inputPumpa.addEventListener('blur', (event) => {
             const hodnota = event.target.value;
-            posliPwmKonstantu('/api/pwm_pump', hodnota);
+            posliPwmKonstantu('/api/pwm_pump', hodnota, 'Pumpa');
         });
         
         // Voliteľné: Odoslanie po stlačení klávesu Enter
@@ -303,7 +341,7 @@ $(document).ready(function() {
     if (inputPeltier) {
         inputPeltier.addEventListener('blur', (event) => {
             const hodnota = event.target.value;
-            posliPwmKonstantu('/api/pwm_tec', hodnota);
+            posliPwmKonstantu('/api/pwm_tec', hodnota, 'Peltier');
         });
     
         // Voliteľné: Odoslanie po stlačení klávesu Enter

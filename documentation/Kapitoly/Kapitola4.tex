@@ -1,0 +1,217 @@
+% !TEX root = ../main.tex
+
+\section{Hardvérová časť}
+
+Hardvérová časť predstavuje realizáciu technických požiadaviek uvedených v kapitole 2.2. 
+V tejto kapitole sú opísané použité komponenty, hydraulický okruh, 
+Peltierova chladiaca zostava, výkonové zapojenie, napájanie a spôsob merania teploty.
+
+Pri návrhu bolo potrebné zohľadniť najmä prúdové zaťaženie výkonových prvkov, 
+stabilné napájanie, účinné chladenie teplej strany Peltierovho článku a 
+bezpečné oddelenie elektroniky od vodného okruhu.
+
+\subsection{Použité komponenty}
+
+V projekte boli použité komponenty potrebné na vytvorenie hydraulického okruhu, 
+merania teploty, výkonového riadenia, napájania a lokálneho zobrazovania údajov. 
+Prehľad hlavných použitých komponentov je uvedený v tabuľke \ref{tab:pouzite_komponenty}.
+
+{\small
+\begin{longtable}{|>{\RaggedRight\arraybackslash}p{0.30\textwidth}|>{\centering\arraybackslash}p{0.12\textwidth}|>{\RaggedRight\arraybackslash}p{0.48\textwidth}|}
+\hline
+\textbf{Komponent} & \textbf{Počet} & \textbf{Úloha v systéme} \\
+\hline
+ESP32 & 1 ks & Riadiaca jednotka systému, čítanie údajov zo snímača, generovanie PWM signálov a komunikácia so serverom. \\
+\hline
+Peltierova zostava & 1 ks & Aktívne chladenie kvapaliny pomocou Peltierovho článku. \\
+\hline
+Peltierov článok & 1 ks & Termoelektrický prvok vytvárajúci rozdiel teplôt medzi studenou a teplou stranou. \\
+\hline
+Chladič s ventilátorom & 1 ks & Odvod tepla z teplej strany Peltierovho článku. \\
+\hline
+Vodná pumpa 12~V & 1 ks & Cirkulácia kvapaliny v uzavretom hydraulickom okruhu. \\
+\hline
+Hadičky pre vodné pumpy & podľa potreby & Prepojenie nádržky, pumpy a výmenníka tepla. \\
+\hline
+Výmenník tepla & 1 ks & Prenos tepla medzi kvapalinou a studenou stranou Peltierovho článku. \\
+\hline
+Vyhrievacie teleso 40~W & 1 ks & Simulácia tepelnej záťaže alebo poruchového stavu. \\
+\hline
+Výkonový rezistor 330~$\Omega$ / 10~W & 1 ks & Pomocný výkonový prvok alebo záťaž podľa aktuálneho zapojenia. \\
+\hline
+H-mostík L298N & 1 ks & Výkonové riadenie Peltierovho článku alebo motorických záťaží podľa zapojenia. \\
+\hline
+PWM MOSFET modul & 1 ks & Spínanie alebo PWM riadenie výkonovej záťaže. \\
+\hline
+Step-down menič Mini-360 MP2307 & 1 ks & Zníženie napätia pre vybrané časti zapojenia. \\
+\hline
+Step-down menič s USB výstupom 5~V / 5~A & 1 ks & Vytvorenie stabilizovanej 5~V vetvy pre riadiacu elektroniku alebo periférie. \\
+\hline
+LCD displej 16x2 s I2C modulom & 1 ks & Lokálne zobrazovanie základných údajov systému. \\
+\hline
+Digitálny snímač teploty DS18B20 & 1 ks & Meranie teploty kvapaliny. \\
+\hline
+Rezistor 4,7~k$\Omega$ & 1 ks & Pull-up rezistor pre dátovú linku snímača DS18B20. \\
+\hline
+Svorkovnice & 6 ks & Pripojenie napájania, výkonových záťaží a externých vodičov. \\
+\hline
+Kondenzátor 1000~$\mu$F & 1 ks & Stabilizácia napájania pri spínaní výkonových prvkov. \\
+\hline
+Kondenzátor 470~$\mu$F & 1 ks & Dodatočné vyhladenie napájacej vetvy. \\
+\hline
+DC jack / napájací konektor & 1 ks & Pripojenie externého napájacieho zdroja. \\
+\hline
+Prepojovacie vodiče a konektory & podľa potreby & Elektrické prepojenie jednotlivých častí systému. \\
+\hline
+\caption{Zoznam hlavných použitých komponentov}
+\label{tab:pouzite_komponenty}
+\end{longtable}
+}
+
+Použité komponenty boli zvolené tak, aby bolo možné vytvoriť funkčný laboratórny model s 
+možnosťou merania, regulácie a testovania. Pri výkonových prvkoch bolo potrebné zohľadniť 
+ich prúdové zaťaženie, zahrievanie a potrebu spoľahlivého chladenia.
+
+\subsection{Mechanická konštrukcia a hydraulický okruh}
+
+Mechanická časť systému je založená na uzavretom hydraulickom okruhu. Okruh pozostáva z nádržky, 
+vodnej pumpy, hadičiek a výmenníka tepla, ktorý je tepelne spojený so studenou stranou 
+Peltierovho článku. Úlohou okruhu je zabezpečiť cirkuláciu kvapaliny cez výmenník tak, 
+aby bolo možné meniť jej teplotu a sledovať odozvu systému.
+
+Základný smer prúdenia kvapaliny je:
+
+\begin{center}
+Nádržka $\rightarrow$ vodná pumpa $\rightarrow$ výmenník tepla pri Peltierovom článku $\rightarrow$ návrat do nádržky
+\end{center}
+
+Kvapalina je z nádržky nasávaná pumpou a cez hadičky vedená do výmenníka tepla. Pri zapnutí 
+Peltierovho článku sa jeho studená strana ochladzuje a cez výmenník odoberá teplo kvapaline. 
+Ochladená kvapalina sa následne vracia späť do nádržky.
+
+Pri mechanickej realizácii bolo potrebné dbať na tesnosť spojov, správne vedenie hadičiek a 
+zabránenie úniku kvapaliny v blízkosti elektroniky. Dôležitý je aj dobrý tepelný kontakt medzi 
+Peltierovým článkom, výmenníkom a chladičom.
+
+\subsection{Peltierova chladiaca zostava a tepelná záťaž}
+
+Peltierov článok je hlavný aktívny prvok na ovplyvňovanie teploty kvapaliny. Pri prechode 
+elektrického prúdu článkom sa jedna jeho strana ochladzuje a druhá zahrieva. Studená strana je 
+spojená s výmenníkom tepla, cez ktorý preteká kvapalina. Teplá strana je pripojená na chladič 
+s ventilátorom, ktorý odvádza vzniknuté teplo do okolia.
+
+Zjednodušene možno chladiaci výkon Peltierovho článku vyjadriť vzťahom:
+
+\[
+Q_c = \Pi I - \frac{1}{2} I^2 R - K \Delta T
+\]
+
+kde $Q_c$ predstavuje teplo odoberané zo studenej strany, $\Pi$ je Peltierov koeficient, $I$ je pretekajúci prúd, $R$ je vnútorný elektrický odpor článku, $K$ je tepelná vodivosť článku a $\Delta T$ je rozdiel teplôt medzi teplou a studenou stranou.
+
+Z uvedeného vzťahu vyplýva, že chladiaci účinok Peltierovho článku nezávisí iba od prúdu, 
+ale aj od teplotného rozdielu a od stratového tepla vznikajúceho v článku. Teplá strana musí 
+preto odviesť nielen teplo odobraté z kvapaliny, ale aj vlastné stratové teplo článku. 
+Ak by nebola aktívne chladená, článok by sa mohol rýchlo prehriať a poškodiť.
+
+Súčasťou modelu je aj vyhrievacie teleso, ktoré slúži na simuláciu tepelnej záťaže alebo 
+poruchového stavu. Umožňuje privádzať do systému dodatočné teplo a sledovať, ako regulačný 
+systém reaguje na zmenu teploty.
+
+\begin{figure}[H]
+    \centering
+    \safeimage{obrazky/peltier_princip.png}{0.75\textwidth}{Princíp činnosti Peltierovho článku a odvod tepla z jeho teplej strany}
+    \label{fig:peltier_princip}
+\end{figure}
+
+\subsection{Elektronické zapojenie a výkonové riadenie}
+
+Elektronická časť systému prepája mikrokontrolér ESP32, snímač teploty, LCD displej, 
+výkonové moduly a napájacie vetvy. ESP32 pracuje ako riadiaca jednotka, ktorá číta teplotu, 
+prijíma riadiace hodnoty zo servera a generuje PWM signály pre výkonové členy.
+
+Výkonové prvky, ako Peltierov článok, vodná pumpa, ventilátor a vyhrievacie teleso, 
+nie je možné napájať priamo z pinov mikrokontroléra. Preto sú riadené cez výkonové moduly, 
+napríklad H-mostík L298N alebo MOSFET modul. Tieto moduly umožňujú spínať alebo regulovať 
+záťaže s vyšším prúdovým odberom pomocou nízkoúrovňového riadiaceho signálu z ESP32.
+
+H-mostík umožňuje riadenie výkonovej záťaže a v prípade potreby aj zmenu polarity. Pri 
+Peltierovom článku môže zmena polarity zmeniť smer tepelného toku. MOSFET modul je vhodný 
+najmä na spínanie alebo PWM riadenie pumpy a vyhrievacieho telesa.
+
+Pri návrhu zapojenia bolo potrebné zabezpečiť spoločnú zem výkonovej a riadiacej časti, 
+aby mali PWM signály správnu referenčnú úroveň. Zároveň je vhodné viesť výkonové vodiče 
+oddelene od signálových vodičov, aby sa znížil vplyv rušenia na snímač teploty a komunikáciu s perifériami.
+
+\begin{figure}[H]
+    \centering
+    \safeimage{obrazky/schema_zapojenia.png}{0.95\textwidth}{Detailná schéma elektrického zapojenia laboratórneho modelu}
+    \label{fig:schema_zapojenia}
+\end{figure}
+
+\subsection{Napájanie, návrh dosky a stabilizácia zapojenia}
+
+Napájanie systému je rozdelené na výkonovú a riadiacu časť. Výkonová časť pracuje najmä s 
+napätím 12~V, ktoré slúži na napájanie Peltierovho článku, vodnej pumpy, ventilátora a 
+vyhrievacieho telesa. Riadiaca časť potrebuje stabilizované nižšie napätie pre ESP32, 
+LCD displej a ďalšie logické obvody.
+
+Na vytvorenie nižších napäťových vetiev sú použité step-down meniče. Mini-360 MP2307 slúži 
+na zníženie vstupného napätia pre vybrané časti obvodu. Step-down menič s USB výstupom 
+5~V / 5~A zabezpečuje stabilizovanú 5~V vetvu pre riadiacu elektroniku alebo periférie.
+
+Pri návrhu dosky bolo potrebné oddeliť výkonové vetvy od signálových vodičov. Výkonové vodiče 
+pre Peltierov článok, pumpu a vyhrievacie teleso musia byť dimenzované na vyšší prúd. 
+Signálové vodiče pre snímač teploty, I2C displej a PWM riadenie môžu byť vedené menšími 
+prierezmi, ale mali by byť vedené tak, aby boli čo najmenej ovplyvnené rušením z výkonovej časti.
+
+V zapojení sú použité kondenzátory 1000~$\mu$F a 470~$\mu$F. Ich úlohou je vyhladzovať 
+napájacie napätie a kompenzovať krátkodobé poklesy alebo špičky, ktoré môžu vzniknúť 
+pri spínaní pumpy, Peltierovho článku alebo vyhrievacieho telesa. Použitie svorkovníc 
+zjednodušuje pripájanie výkonových záťaží a zvyšuje prehľadnosť zapojenia.
+
+\begin{figure}[H]
+    \centering
+    \safeimage{obrazky/plosak_v1.png}{0.80\textwidth}{Návrh rozloženia výkonovej časti zapojenia}
+    \label{fig:plosak_v1}
+\end{figure}
+
+\subsection{Meranie teploty a lokálne zobrazenie}
+
+Teplota kvapaliny je meraná digitálnym snímačom DS18B20. Snímač je vhodný na meranie teploty 
+kvapaliny, pretože je dostupný aj vo vodotesnom puzdre a komunikuje digitálne. Pri zapojení 
+sa používa dátová linka, napájanie, zem a pull-up rezistor 4,7~k$\Omega$.
+
+Snímač je umiestnený v nádržke alebo v časti okruhu, ktorá reprezentuje aktuálnu teplotu 
+kvapaliny. Nameraná hodnota slúži ako hlavná spätnoväzbová veličina systému a používa sa 
+na výpočet regulačnej odchýlky.
+
+Lokálne zobrazovanie údajov je riešené pomocou LCD displeja 16x2 s I2C modulom. Displej 
+umožňuje zobraziť základné informácie, napríklad aktuálnu teplotu, požadovanú teplotu, 
+stav systému, regulačný mód alebo hodnoty PWM. Vďaka I2C rozhraniu stačia na komunikáciu 
+iba dve dátové vodiče.
+
+\subsection{Oživenie a vývoj zapojenia počas projektu}
+
+Oživenie hardvéru prebiehalo postupne. Najskôr bolo potrebné overiť napájanie riadiacej časti, 
+funkciu ESP32, snímača teploty a LCD displeja. Až následne bolo vhodné pripájať 
+výkonové vetvy a testovať pumpu, Peltierov článok, ventilátor a vyhrievacie teleso.
+
+Pri hydraulickej časti bolo potrebné skontrolovať naplnenie okruhu, správnu cirkuláciu 
+kvapaliny a tesnosť spojov. Pred zapnutím Peltierovho článku bolo nutné overiť funkčnosť 
+chladiča a ventilátora na jeho teplej strane. Počas prvých testov bolo vhodné sledovať 
+aj teplotu výkonových modulov, vodičov a svorkovníc.
+
+Hardvérové zapojenie sa počas projektu postupne upravovalo. Prvé verzie slúžili najmä na 
+overenie základného princípu zapojenia komponentov, napájacích vetiev a výkonových modulov. 
+Neskôr sa návrh upravoval tak, aby bolo zapojenie prehľadnejšie, bezpečnejšie a vhodnejšie na 
+praktické testovanie.
+
+Do dokumentácie sú zaradené jednotlivé verzie schém a návrhov zapojenia. Porovnaním starších a 
+novších verzií je možné vidieť postupné sprehľadnenie zapojenia a úpravy vyplývajúce z 
+praktického testovania.
+
+\begin{figure}[H]
+    \centering
+    \safeimage{obrazky/fyzicka_realizacia.png}{0.85\textwidth}{Fyzická realizácia laboratórneho modelu}
+    \label{fig:fyzicka_realizacia}
+\end{figure}
