@@ -62,7 +62,7 @@ Plotly.newPlot('temp-graph', [
 
 // --- 3. WEBSOCKET PRIPOJENIE A UPDATE ---
 
-const socket = io("http://localhost:5003/test");
+const socket = io("http://localhost:5005/test");
 const $terminal = $('#terminal');
 
 function log_to_terminal(message) {
