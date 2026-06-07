@@ -62,7 +62,7 @@ Plotly.newPlot('temp-graph', [
 
 // --- 3. WEBSOCKET PRIPOJENIE A UPDATE ---
 
-const socket = io("http://localhost:5001/test");
+const socket = io("http://localhost:5003/test");
 const $terminal = $('#terminal');
 
 function log_to_terminal(message) {
@@ -186,10 +186,13 @@ $(document).ready(function() {
         } else if (selectedMode === 2) {
             $('#wrapper-pumpa').hide();     // Schová pumpu
             $('#wrapper-peltier').show();   // Zobrazí peltier
-        } else {
+        } else if (selectedMode === 3) {
             // Mód 3 (Kaskádová regulácia) - schová obe
             $('#wrapper-pumpa').hide();
             $('#wrapper-peltier').hide();
+        } else {
+            $('#wrapper-pumpa').show();
+            $('#wrapper-peltier').show();
         }
 
         // ODESLANIE NA SERVER:
