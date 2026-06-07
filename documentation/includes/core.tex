@@ -1,3 +1,83 @@
+\section{Globálna architektúra IoT systému}
+Navrhnutý systém je plne integrovaný do IoT infraštruktúry a rešpektuje viacvrstvovú architektúru prepojenia reálneho hardvéru, lokálneho servera a cloudového prostredia (ThingsBoard). 
+Prepojenie a toky dát medzi jednotlivými subsystémami, vrátane použitých komunikačných protokolov, sú znázornené na nasledujúcom blokovom diagrame (Obr. \ref{fig:global_arch}).
+
+\vspace{0.5cm}
+
+% Schéma vstavanej architektúry TikZ
+\begin{figure}[h!]
+\centering
+\includegraphics[width=\textwidth]{includes/img/Iot_architektura.png}
+\caption{Bloková schéma IoT architektúry riadenia teploty s vyznačením komunikačných protokolov.}
+\label{fig:global_arch}
+\end{figure}
+
+Hardvér (senzory a akčné členy) komunikuje s mikrokontrolérom ESP32, ktorý zabezpečuje zber dát a priame riadenie komponentov (pumpy a Peltierovho článku) pomocou PWM signálov. 
+
+ESP32 komunikuje so zvyškom systému bezdrôtovo cez sieť Wi-Fi. 
+Namerané dáta odosiela na lokálny server vo formáte JSON a spätne z neho prijíma riadiace príkazy. 
+
+Lokálny server, postavený na frameworku Flask v jazyku Python, funguje ako centrálny uzol celej architektúry. 
+Spracováva prijaté dáta, ukladá históriu behu do SQL databázy a JSON súboru a zabezpečuje komunikáciu s používateľskými rozhraniami:
+
+\begin{itemize}
+    \item \textbf{Smerom k webovému Frontendu:} Aktuálne dáta sa odosielajú používateľovi v reálnom čase prostredníctvom technológie WebSockets. 
+    Naopak, ovládacie príkazy z webového prehliadača prichádzajú na server cez štandardné HTTP REST rozhranie.
+    
+    \item \textbf{Smerom ku cloudu (ThingsBoard):} Pre vzdialený manažment a pokročilú vizualizáciu je server prepojený s platformou ThingsBoard. 
+    Obojsmerná komunikácia prebieha cez protokol MQTT, ktorý sa stará o pravidelné odosielanie telemetrie a prijímanie riadiacich RPC príkazov a atribútov.
+\end{itemize}
+
+
+\section{Hardwarová konštrukcia}
+Nas system na chladenie vody sme sa snazili urobit co najspornejsie a preto sme si aj vybrali nariadenie iba esp32 a na server sme zvolili pocitac a nie rapsberry pi ako ostatny kolegovia.
+Rozhodli sme sa tak hlavne kvoli peniazom aby sme neminuly tolko penazi na zbytopcne veci kedze server moze byt na nasom PC a mozeme sa nan spojit s esp32.
+
+Cela nasu konstrukciu sme robili v duchu, co najmenej minut a preto sme aj vacsinu mechanickych suciastok zobrali z domu zadarmo. 
+Je to napriklad doska kde sme vsetko primontovali a aj vodna nadrz, spravena zo zavaraninoveho pohara.
+
+\subsection{Komponenty}
+tu su nasledovne Komponenty ktore sme vyuzili a par vety o tom na co su a ako sme ich vyuzili
+\begin{itemize}
+  \item \textbf{Peltier článok: } Hlavný komponent nýšho systému, bez ktorého by sme nemohli chladiť našu vodu.
+        Ked donho pustime prud jedna strana sa ochladzuje a druha zas zohrieva. Avsak tneto ohrev treba kontrolovat aby nepokazil peltier a na to mame nas druhy komponent 
+  \item \textbf{Zostava pre pretier článok: } Slúži na postavenie spoľahlivého chladiaceho a ohrievacieho systému pre peltier članok. skladá sa z chladiča, ventilátora a ďaľšieho mensieho cladica.
+  \item \textbf{Chladic peltier clankov pre chladenie vodov: } Dalej tu mame dalsi chladic ale ten dame na nasu studenu stranu peltiera aby sme chladili vodu. cez tento chladic bude tiect voda a preto ma aj otvory na vstup a vystup vody.
+\end{itemize}
+
+\begin{figure}[htbp]
+    \centering
+    % Prvý obrázok
+    \begin{subfigure}[b]{0.32\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{includes/img/Components/Peltier.jpg}
+    \end{subfigure}
+    \hfill % Flexibilná medzera medzi obrázkami
+    % Druhý obrázok
+    \begin{subfigure}[b]{0.32\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{includes/img/Components/peltier_chladic_vody.jpg}
+    \end{subfigure}
+    \hfill
+    % Tretí obrázok
+    \begin{subfigure}[b]{0.32\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{includes/img/Components/peltier_zostava.jpg}
+    \end{subfigure}
+    
+    \caption{Hlavný spoločný popis pre všetky tri obrázky.}
+    \label{fig:PeltierZostava}
+\end{figure}
+
+\begin{itemize}
+  \item \textbf{Vodna pumpa 12V: } Dalej mame vodnu pumpu ktora zobere vodu z nadrze a nasledne ju tlaci na nas chaldic kde sa ochladi s peltierom.
+  \item \textbf{Senzor teploty DS18B20: } Dalej tu mame senzor teploty ktory sa nachadza v nadrzi a meria nasu vodu aby sme vedeli ci peltier naozaj funguje a nasledne tieto info posiela dalej.
+  \item \textbf{Topné teliesko 40W: } V nadrzi mame nasledne aj ohrievacie teliesko ktore pouzivame ako poruchu v systeme. Toto teliesko sa nachadza co najdalej od senzora teploty aby nepokazilo jeho snimanie.
+  \item \textbf{PWM MOSFET: } Na ovladanie peltiera a ohrievacieho telieska pouzivame 2 pwm mosfety pre kazdu suciastku zlvast. Je to hlavne kvoli tomu ze cez tieto suciastky prechadza vela prudu a preto sme sa rozhodli pre tuto suiciastku.
+  \item \textbf{H-mostik: } Kupili sme ho aby sme ovladali pumpu a peltiera ale zistili sme ze dava maximalny prud na vystupe iba 2A a preto sme sa rozhodli nim pohanat iba pumpu ktora ma max vystupny prud mensi ako 2A. mozeme s nim menit aj smer pumpy.
+  \item 
+\end{itemize}
+
 \section{Metódy}
 \subsection{Použité dáta}
 Popis použitého súboru dát a formátu.
