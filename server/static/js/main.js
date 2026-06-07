@@ -23,7 +23,7 @@ Plotly.newPlot('pump-graph', [{
     y: graphData.pump_pwm,
     name: 'Pumpa',
     mode: 'lines',
-    line: { color: '#ff7f0e', width: 2 }
+    line: { color: '#f7d4ab', width: 2 }
 }], { ...smallGraphLayout, title: 'Pumpa (PWM)' });
 
 // Graf 2: PET / Peltier (Top Right vo Figme)
@@ -32,7 +32,7 @@ Plotly.newPlot('tec-graph', [{
     y: graphData.tec_pwm,
     name: 'Peltier',
     mode: 'lines',
-    line: { color: '#9467bd', width: 2 }
+    line: { color: '#feadab', width: 2 }
 }], { ...smallGraphLayout, title: 'PET (PWM)' });
 
 // Graf 3: Teplota (Veľký spodný graf)
@@ -42,7 +42,7 @@ Plotly.newPlot('temp-graph', [{
     name: 'Teplota',
     mode: 'lines',
     fill: 'tozeroy', // Vyplnený graf pod čiarou pre lepší vzhľad
-    line: { color: '#1f77b4', width: 3 }
+    line: { color: '#6fa5cc', width: 3 }
 }], { 
     title: 'Teplota [°C]',
     xaxis: { type: 'date' },
@@ -98,7 +98,7 @@ socket.on('new_data', (data) => {
             name: 'Nameraná teplota',
             mode: 'lines',
             fill: 'tozeroy', // Vyplnený graf pod čiarou pre lepší vzhľad
-            line: { color: '#1f77b4', width: 3 }
+            line: { color: '#6fa5cc', width: 3 }
         },
         // 2. Krivka: Setpoint (cieľová teplota)
         {
@@ -106,7 +106,7 @@ socket.on('new_data', (data) => {
             y: graphData.target_temperature,
             name: 'Žiadaná teplota',
             mode: 'lines',
-            line: { color: '#ef4444', width: 2, dash: 'dash' } // Červená prerušovaná čiara
+            line: { color: '#66bb6a', width: 2, dash: 'dash' } // Červená prerušovaná čiara
         }
     ], { 
         title: 'Teplota [°C]',

@@ -67,7 +67,7 @@ $('#show-btn').click(function() {
                 y: pumpPwms,
                 name: 'Pumpa',
                 mode: 'lines',
-                line: { color: '#ff7f0e', width: 2 }
+                line: { color: '#f7d4ab', width: 2 }
             }], smallGraphLayout, { responsive: true }); // <-- Pridané { responsive: true }
 
             // Vykreslíme GRAF 2: Peltier
@@ -76,7 +76,7 @@ $('#show-btn').click(function() {
                 y: tecPwms,
                 name: 'Peltier',
                 mode: 'lines',
-                line: { color: '#9467bd', width: 2 }
+                line: { color: '#feadab', width: 2 }
             }], smallGraphLayout, { responsive: true }); // <-- Pridané { responsive: true }
 
             // Vykreslíme GRAF 3: Teplota
@@ -86,7 +86,7 @@ $('#show-btn').click(function() {
                 name: 'Teplota',
                 mode: 'lines',
                 fill: 'tozeroy', 
-                line: { color: '#1f77b4', width: 3 }
+                line: { color: '#6fa5cc', width: 3 }
             }], { 
                 autosize: true, // Povolí automatické prispôsobenie
                 xaxis: { type: 'date' },
