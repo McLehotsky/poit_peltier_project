@@ -126,7 +126,7 @@ $(document).ready(function() {
 
     // Tlačidlo CONNECT (Logická brána pre ESP32)
     $('#connect-btn').click(function() {
-        let isConnected = $(this).hasClass('btn-success'); 
+        let isConnected = $(this).hasClass('btn-green'); 
         let newState = !isConnected;
 
         $.ajax({
@@ -137,9 +137,9 @@ $(document).ready(function() {
             success: function(resp) {
                 const time = new Date().toLocaleTimeString();
                 if (resp.connected) {
-                    $('#connect-btn').text('Connected').removeClass('btn-warning').addClass('btn-success');
+                    $('#connect-btn').text('Connected').removeClass('btn-yellow').addClass('btn-green');
                 } else {
-                    $('#connect-btn').text('Connect').removeClass('btn-success').addClass('btn-warning');
+                    $('#connect-btn').text('Connect').removeClass('btn-green').addClass('btn-yellow');
                 }
             }
         });
