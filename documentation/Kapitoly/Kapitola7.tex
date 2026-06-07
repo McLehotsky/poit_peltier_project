@@ -1,1 +1,35 @@
 \section{Záver}
+
+Cieľom tímového projektu bolo navrhnúť a realizovať inteligentný IoT systém 
+na riadenie teploty kvapaliny pomocou Peltierovho článku. Výsledkom riešenia 
+je laboratórny model, ktorý prepája hardvérovú časť, mikrokontrolér ESP32, 
+lokálny Flask server, webové rozhranie, dátové úložisko a cloudovú platformu ThingsBoard.
+
+Hardvérová časť systému bola navrhnutá ako uzavretý hydraulický okruh s vodnou pumpou, 
+výmenníkom tepla, Peltierovým článkom, chladičom s ventilátorom a snímačom teploty. 
+Pri návrhu bolo potrebné zohľadniť najmä prúdové zaťaženie výkonových prvkov, 
+stabilitu napájania, bezpečné oddelenie elektroniky od vodného okruhu a dostatočné 
+chladenie teplej strany Peltierovho článku. Súčasťou hardvérového riešenia bolo 
+aj lokálne zobrazovanie údajov na LCD displeji a postupné upravovanie zapojenia 
+podľa potrieb testovania.
+
+Softvérová časť zabezpečuje komunikáciu medzi ESP32 a serverom, spracovanie aktuálneho stavu systému, 
+realtime zobrazovanie údajov vo webovom rozhraní a ukladanie historických meraní. 
+Na komunikáciu medzi webovým rozhraním a serverom bola použitá WebSocket komunikácia, 
+zatiaľ čo dáta zo zariadenia sú prijímané cez REST API. Merania sa ukladajú do MySQL databázy 
+a zároveň aj do záložného súboru vo formáte JSON, čo umožňuje spätné zobrazenie a 
+vyhodnocovanie nameraných priebehov.
+
+Dôležitou súčasťou projektu bola aj integrácia s platformou ThingsBoard. 
+Do cloudového dashboardu sa odosielajú telemetrické údaje, ako aktuálna teplota, 
+požadovaná teplota, regulačná odchýlka, PWM hodnota pumpy, PWM hodnota Peltierovho článku, 
+stav systému a aktívny režim. Dashboard zároveň umožňuje základné vzdialené ovládanie systému, 
+prepínanie režimov a manuálne nastavovanie PWM hodnôt. Okrem troch regulačných módov požadovaných 
+zadaním bol doplnený aj štvrtý manuálny režim, ktorý umožňuje priame ovládanie pumpy aj Peltierovho článku.
+
+Projekt ukazuje prepojenie viacerých oblastí mechatroniky, automatického riadenia a IoT technológií. 
+Riešenie spája reálnu tepelnú sústavu, výkonovú elektroniku, meranie teploty, webovú aplikáciu, 
+databázové ukladanie dát a cloudový monitoring do jedného funkčného celku. Navrhnutý systém vytvára 
+vhodný základ na ďalšie testovanie regulačných algoritmov, identifikáciu tepelnej sústavy a overovanie 
+správania systému pri rôznych režimoch riadenia.
+
