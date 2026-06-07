@@ -224,6 +224,8 @@ system_state = {
     "setpoint": 25.0,
     "mode": 1,
     "running": False,
+    "error": 0,
+    "isErrorActive": False,
     "session_buffer": []
 }
 
@@ -266,7 +268,8 @@ def update_data():
         "setpoint": system_state['setpoint'],
         "running": system_state['running'],
         "mode": system_state['mode'],
-        "error": round(system_state['setpoint'] - (system_state['temperature'] or 0), 2)
+        "error": system_state['error'],
+        "isErrorActive": system_state['isErrorActive']
     }
 
     send_to_thingsboard(tb_data)
@@ -294,7 +297,9 @@ def update_data():
         "mode": system_state['mode'],
         "target_pump": system_state['target_pump_pwm'],
         "target_tec": system_state['target_tec_pwm'],
-        "setpoint": system_state['setpoint']
+        "setpoint": system_state['setpoint'],
+        "error": system_state['error'],
+        "isErrorActive": system_state['isErrorActive']
     })
 
 
@@ -350,6 +355,14 @@ def set_pwm_tec():
     system_state['target_tec_pwm'] = max(0, min(255, val))
     print(f"[API] Target TEC PWM → {system_state['target_tec_pwm']}")
     return jsonify({"status": "ok", "target_tec": system_state['target_tec_pwm']})
+
+@app.route('/api/error', methods=['POST'])
+def set_error():
+    data = request.json
+    system_state['error'] = float(data.get('error', 0.0))
+    system_state['isErrorActive'] = bool(data.get('isErrorActive', False))
+    print(f"[API] Error → {system_state['error']} °C status of error: {'ACTIVE' if system_state['isErrorActive'] else 'INACTIVE'}")
+    return jsonify({"status": "ok", "error": system_state['error'], "isErrorActive": system_state['isErrorActive']})
 
 
 @app.route('/api/status', methods=['GET'])
