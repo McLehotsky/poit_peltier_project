@@ -1,0 +1,247 @@
+% !TEX root = ../main.tex
+
+\section{Softvérová časť}
+
+Softvérová časť projektu zabezpečuje prepojenie medzi hardvérovým modelom, 
+lokálnym webovým rozhraním, databázou a cloudovou platformou ThingsBoard. 
+Hlavnou úlohou softvéru je prijímať dáta z mikrokontroléra ESP32, 
+spracovať aktuálny stav systému, zobraziť namerané hodnoty v reálnom čase, 
+ukladať historické merania a umožniť lokálne aj vzdialené ovládanie systému.
+
+Základný tok dát je navrhnutý tak, že ESP32 periodicky odosiela aktuálne hodnoty na 
+Flask server. Server prijaté dáta spracuje, odošle ich do lokálneho webového dashboardu 
+pomocou WebSocket komunikácie, pri aktívnom meraní ich uloží do dočasného buffra 
+a zároveň publikuje telemetriu do platformy ThingsBoard. Po zastavení merania 
+sa celá meracia sekvencia uloží do MySQL databázy a do záložného JSON súboru.
+
+\begin{figure}[H]
+    \centering
+    \safeimage{obrazky/tok_dat.png}{0.90\textwidth}{Diagram toku dát softvérovej časti systému}
+    \label{fig:tok_dat_softver}
+\end{figure}
+
+\subsection{Architektúra softvérového riešenia}
+
+Softvérové riešenie je sústredené okolo Flask servera, ktorý prepája ESP32, webové rozhranie, databázu a platformu ThingsBoard. ESP32 zabezpečuje meranie a výkonové riadenie, zatiaľ čo server spracúva prijaté dáta, uchováva aktuálny stav systému a poskytuje rozhrania pre lokálne aj vzdialené ovládanie.
+
+Hlavné softvérové časti sú:
+
+\begin{itemize}
+    \item \textbf{ESP32 firmvér} -- odosielanie nameraných hodnôt a prijímanie riadiacich parametrov,
+    \item \textbf{Flask server} -- REST API, WebSocket komunikácia, stav systému a ukladanie dát,
+    \item \textbf{webové rozhranie} -- realtime grafy, ovládacie prvky a archív meraní,
+    \item \textbf{ThingsBoard integrácia} -- MQTT telemetria a vybrané vzdialené príkazy.
+\end{itemize}
+
+\subsection{Komunikácia ESP32 so serverom}
+
+Mikrokontrolér ESP32 odosiela namerané údaje na Flask server pomocou HTTP požiadavky 
+na endpoint \path{/api/update}. Odosielaná správa obsahuje najmä aktuálnu teplotu kvapaliny, 
+PWM hodnotu pumpy a PWM hodnotu Peltierovho článku.
+
+\begin{lstlisting}[language=json, caption={Príklad dát odosielaných z ESP32 na server}]
+{
+  "temperature": 24.5,
+  "pump_pwm": 150,
+  "tec_pwm": 120
+}
+\end{lstlisting}
+
+Server po prijatí dát aktualizuje svoj interný stav a odošle ESP32 spätnú odpoveď. 
+Tá obsahuje napríklad informáciu o tom, či je systém pripojený, či beží meranie, 
+aký regulačný mód je zvolený, aké sú cieľové PWM hodnoty a aká je nastavená požadovaná teplota.
+
+\begin{lstlisting}[language=json, caption={Príklad odpovede servera pre ESP32}]
+{
+  "status": "ok",
+  "connected": true,
+  "running": true,
+  "mode": 1,
+  "target_pump": 150,
+  "target_tec": 120,
+  "setpoint": 25.0
+}
+\end{lstlisting}
+
+Dôležitým prvkom je stav \path{connected}. Ak server vráti hodnotu \path{connected=false}, 
+hardvér ostáva v bezpečnom stave a výkonové prvky nemusia byť aktivované. Tým sa zabraňuje 
+nechcenému spusteniu Peltierovho článku alebo pumpy.
+
+\subsection{Backend Flask server a REST API}
+
+Flask server tvorí centrálny bod softvérovej časti. Prijíma dáta z ESP32, uchováva 
+aktuálny stav systému, spracúva príkazy z webového rozhrania, komunikuje s ThingsBoardom a 
+zabezpečuje ukladanie meraní. Aktuálne hodnoty sú uložené v stavovej premennej 
+\path{system_state}, ktorá obsahuje napríklad teplotu, PWM hodnoty, setpoint, regulačný mód, 
+stav merania a buffer aktuálnej session.
+
+Pre komunikáciu sú vytvorené REST API endpointy uvedené v tabuľke \ref{tab:rest_api_endpointy}.
+
+{\small
+\begin{longtable}{|>{\RaggedRight\arraybackslash}p{0.33\textwidth}|>{\centering\arraybackslash}p{0.12\textwidth}|>{\RaggedRight\arraybackslash}p{0.45\textwidth}|}
+\hline
+\textbf{Endpoint} & \textbf{Metóda} & \textbf{Úloha} \\
+\hline
+\path{/api/update} & POST & Príjem aktuálnych dát z ESP32. \\
+\hline
+\path{/api/connect} & POST & Logické pripojenie alebo odpojenie systému. \\
+\hline
+\path{/api/start} & POST & Spustenie merania alebo regulácie. \\
+\hline
+\path{/api/stop} & POST & Zastavenie systému a uloženie aktuálnej session. \\
+\hline
+\path{/api/setpoint} & POST & Nastavenie požadovanej teploty. \\
+\hline
+\path{/api/mode} & POST & Nastavenie regulačného módu. \\
+\hline
+\path{/api/pwm_pump} & POST & Nastavenie cieľovej PWM hodnoty pumpy. \\
+\hline
+\path{/api/pwm_tec} & POST & Nastavenie cieľovej PWM hodnoty Peltierovho článku. \\
+\hline
+\path{/api/read_db/<id>} & GET & Čítanie historického záznamu z databázy. \\
+\hline
+\path{/api/read_log/<id>} & GET & Čítanie historického záznamu zo súboru JSON. \\
+\hline
+\caption{Prehľad hlavných REST API endpointov}
+\label{tab:rest_api_endpointy}
+\end{longtable}
+}
+
+Endpoint \path{/api/update} je hlavný vstupný bod pre dáta z hardvéru. Endpointy \path{/api/start} a \path{/api/stop} riadia začiatok a koniec merania. Endpointy pre setpoint, mód a PWM hodnoty slúžia na zmenu riadiacich parametrov systému.
+
+\subsection{Webové rozhranie a realtime prenos dát}
+
+Lokálne webové rozhranie slúži na sledovanie aktuálneho stavu systému a na zadávanie 
+riadiacich príkazov. Frontend je vytvorený pomocou HTML, CSS a JavaScriptu. 
+Grafy sú vykresľované pomocou knižnice Plotly.
+
+Realtime prenos dát medzi serverom a webovým rozhraním je realizovaný pomocou WebSocket 
+komunikácie cez Flask-SocketIO. Po prijatí nových dát zo zariadenia server odošle udalosť 
+\path{new_data}, ktorú frontend použije na aktualizáciu grafov.
+
+Webové rozhranie zobrazuje najmä:
+
+\begin{itemize}
+    \item aktuálnu teplotu kvapaliny,
+    \item požadovanú teplotu,
+    \item PWM hodnotu pumpy,
+    \item PWM hodnotu Peltierovho článku,
+    \item aktuálny stav systému a regulačný mód.
+\end{itemize}
+
+Používateľ môže cez webové rozhranie systém pripojiť, spustiť alebo zastaviť meranie, 
+nastaviť požadovanú teplotu, zvoliť regulačný mód a manuálne nastaviť PWM hodnoty pumpy a 
+Peltierovho článku. Súčasťou webovej aplikácie je aj archívna stránka, ktorá umožňuje 
+zobrazenie historických meraní z databázy alebo zo súboru JSON.
+
+\subsection{Dátová vrstva -- MySQL a JSON}
+
+Dátová vrstva je navrhnutá ako dvojúrovňové ukladanie nameraných údajov. 
+Počas aktívneho merania sa dáta ukladajú do dočasného buffra \path{session_buffer}. 
+Dátové body sa do buffra pridávajú iba vtedy, keď je systém v stave \path{running=True}. 
+Tým sa zabraňuje ukladaniu zbytočných údajov v pohotovostnom režime.
+
+Každý dátový bod obsahuje najmä poradové číslo vzorky, časovú značku, teplotu, 
+PWM hodnotu pumpy, PWM hodnotu Peltierovho článku, požadovanú teplotu a aktuálny regulačný mód.
+
+Po zastavení merania sa celá session uloží naraz do dvoch úložísk:
+
+\begin{itemize}
+    \item do MySQL databázy \path{ml_poit}, tabuľka \path{graph},
+    \item do lokálneho súboru \path{data_log.json}.
+\end{itemize}
+
+Databáza slúži ako hlavné úložisko historických meraní. JSON súbor slúži ako 
+jednoduchá záloha a umožňuje čítanie dát aj bez databázového servera. 
+Po úspešnom uložení sa buffer vyčistí a systém je pripravený na ďalšie meranie.
+
+\subsection{ThingsBoard integrácia}
+
+Pre vzdialený monitoring a manažment systému bola použitá platforma ThingsBoard. 
+Flask server komunikuje s ThingsBoardom pomocou MQTT protokolu na porte 
+\path{1883}. Po prijatí dát z ESP32 server publikuje telemetriu na topic 
+\path{v1/devices/me/telemetry}.
+
+Do ThingsBoardu sa odosielajú hlavné veličiny uvedené v tabuľke \ref{tab:thingsboard_telemetria}.
+
+{\small
+\begin{longtable}{|>{\RaggedRight\arraybackslash}p{0.26\textwidth}|>{\RaggedRight\arraybackslash}p{0.48\textwidth}|>{\RaggedRight\arraybackslash}p{0.16\textwidth}|}
+\hline
+\textbf{Kľúč} & \textbf{Popis} & \textbf{Jednotka / rozsah} \\
+\hline
+\path{temperature} & Nameraná teplota kvapaliny. & $^\circ$C \\
+\hline
+\path{setpoint} & Požadovaná teplota. & $^\circ$C \\
+\hline
+\path{error} & Regulačná odchýlka. & $^\circ$C \\
+\hline
+\path{pump_pwm} & PWM hodnota pumpy. & 0--255 \\
+\hline
+\path{tec_pwm} & PWM hodnota Peltierovho článku. & 0--255 \\
+\hline
+\path{mode} & Aktívny regulačný mód. & 1 / 2 / 3 \\
+\hline
+\path{running} & Stav regulácie. & bool \\
+\hline
+\caption{Telemetrické veličiny odosielané do ThingsBoardu}
+\label{tab:thingsboard_telemetria}
+\end{longtable}
+}
+
+Okrem číselných hodnôt sa do ThingsBoardu odosiela aj textový atribút \path{terminal}, 
+ktorý zobrazuje stručný diagnostický stav systému. Obsahuje napríklad aktuálnu teplotu, 
+regulačnú odchýlku, stav RUN/STOP a aktívny mód.
+
+Dashboard v ThingsBoarde je rozdelený na dva stavy. Stav \textit{Default} slúži na realtime 
+sledovanie a ovládanie systému. Obsahuje grafy teploty, PWM pumpy a PWM Peltierovho článku, 
+tlačidlá \textit{Connect}, \textit{Start}, \textit{Stop}, prepínanie módov a vstupy 
+pre manuálne PWM hodnoty. Stav \textit{Archív} slúži na zobrazenie historických dát za 
+zvolené časové obdobie.
+
+\begin{figure}[H]
+    \centering
+    \safeimage{obrazky/thingsboard_default.png}{0.95\textwidth}{ThingsBoard dashboard v stave Default}
+    \label{fig:thingsboard_default}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \safeimage{obrazky/thingsboard_archiv.png}{0.95\textwidth}{ThingsBoard dashboard v stave Archív}
+    \label{fig:thingsboard_archiv}
+\end{figure}
+
+\subsection{Obojsmerná komunikácia s ThingsBoardom}
+
+Systém neodosiela do ThingsBoardu iba telemetriu, ale zároveň prijíma aj vybrané riadiace 
+príkazy. Použité sú dva mechanizmy. Prvým sú RPC príkazy cez topic 
+\path{v1/devices/me/rpc/request/+}, ktoré sa používajú najmä pre tlačidlá 
+\textit{Connect}, \textit{Start} a \textit{Stop}. Druhým mechanizmom sú zdieľané atribúty cez 
+topic \path{v1/devices/me/attributes}.
+
+Cez zdieľané atribúty sa prenášajú najmä:
+
+\begin{itemize}
+    \item \path{control_mode} -- nastavenie regulačného módu,
+    \item \path{target_pump_pwm} -- cieľová PWM hodnota pumpy,
+    \item \path{target_tec_pwm} -- cieľová PWM hodnota Peltierovho článku.
+\end{itemize}
+
+Po prijatí zmeny z ThingsBoardu Flask server aktualizuje svoj interný stav a pri 
+najbližšej komunikácii odošle nové hodnoty do ESP32. Zmeny môžu byť zároveň odoslané 
+aj do lokálneho webového dashboardu pomocou WebSocket udalosti \path{status_update}.
+
+\subsection{Regulačné módy systému}
+
+Systém podporuje tri regulačné módy, ktoré je možné prepínať z webového rozhrania alebo z 
+ThingsBoard dashboardu.
+
+\begin{itemize}
+    \item \textbf{Mód 1} -- regulácia pomocou Peltierovho článku pri konštantnom alebo manuálne nastavenom výkone pumpy,
+    \item \textbf{Mód 2} -- regulácia pomocou prietoku pumpy pri konštantnom výkone Peltierovho článku,
+    \item \textbf{Mód 3} -- hybridná alebo kaskádová regulácia pomocou Peltierovho článku aj pumpy.
+\end{itemize}
+
+Zvolený mód sa ukladá do interného stavu servera a následne sa prenáša do ESP32. 
+Pre PID reguláciu je v projekte pripravený modul \path{pid_logic.py}, ktorý obsahuje triedu 
+\path{PIDController}. Finálne nastavenie regulačných parametrov závisí od výsledkov 
+identifikácie a testovania reálnej tepelnej sústavy.

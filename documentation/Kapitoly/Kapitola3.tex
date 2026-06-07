@@ -1,0 +1,58 @@
+\section{Návrh riešenia}
+
+Návrh riešenia opisuje celkové usporiadanie systému a vzájomné prepojenie jeho hlavných častí. 
+Systém je navrhnutý ako IoT riešenie, ktoré prepája fyzický laboratórny model, 
+mikrokontrolér ESP32, lokálny Flask server, webové rozhranie, dátové úložisko a 
+cloudovú platformu ThingsBoard.
+
+\subsection{Celková architektúra systému}
+
+Systém je rozdelený na štyri základné vrstvy. Fyzická vrstva obsahuje hydraulický okruh, 
+snímač teploty a akčné členy, teda Peltierov článok, vodnú pumpu, ventilátor a vyhrievacie 
+teleso. Riadiacu vrstvu tvorí mikrokontrolér ESP32, ktorý zabezpečuje čítanie teploty a 
+generovanie PWM signálov pre výkonové prvky.
+
+Lokálnu serverovú vrstvu tvorí počítač so spustenou Flask aplikáciou. Táto vrstva prijíma 
+údaje z ESP32, spracúva aktuálny stav systému, poskytuje webové rozhranie a zabezpečuje 
+ukladanie meraní. Cloudovú vrstvu tvorí platforma ThingsBoard, ktorá slúži na vzdialené 
+sledovanie a vybrané ovládanie systému.
+
+Takéto rozdelenie umožňuje oddeliť fyzickú realizáciu, lokálne riadenie, vizualizáciu a 
+cloudový monitoring. Flask server pritom slúži ako centrálna komunikačná brána medzi ESP32, 
+webovým rozhraním, databázou a ThingsBoardom.
+
+\subsection{Bloková schéma systému}
+
+Celkové usporiadanie systému je znázornené na blokovej schéme. Schéma zobrazuje hlavné 
+funkčné vrstvy systému a spôsob ich vzájomného prepojenia.
+
+\begin{figure}[H]
+    \centering
+    \safeimage{obrazky/blokova_schema_iot.png}{0.95\textwidth}{Bloková schéma IoT 
+    architektúry systému riadenia teploty kvapaliny}
+    \label{fig:blokova_schema_iot}
+\end{figure}
+
+Medzi fyzickou vrstvou a mikrokontrolérom ESP32 sa prenášajú merané údaje zo snímača a 
+riadiace PWM signály pre výkonové členy. ESP32 komunikuje s lokálnym Flask serverom pomocou 
+dátových správ. Flask server následne poskytuje údaje webovému rozhraniu, ukladá ich do 
+databázy a JSON súboru a odosiela vybrané telemetrické údaje do platformy ThingsBoard.
+
+\subsection{Tok dát a riadiacich príkazov}
+
+Tok dát v systéme je navrhnutý tak, aby všetky merané hodnoty aj riadiace príkazy prechádzali 
+cez Flask server. ESP32 teda priamo nekomunikuje s databázou ani s cloudovou platformou, 
+ale odosiela dáta na lokálny server, ktorý ich ďalej spracúva.
+
+\begin{center}
+Snímač teploty $\rightarrow$ ESP32 $\rightarrow$ Flask server $\rightarrow$ webové rozhranie / databáza / ThingsBoard
+\end{center}
+
+Riadiace príkazy môžu prichádzať z webového rozhrania alebo z ThingsBoard dashboardu. Flask server ich uloží do aktuálneho stavu systému a pri ďalšej komunikácii ich odošle do ESP32.
+
+\begin{center}
+Webové rozhranie / ThingsBoard $\rightarrow$ Flask server $\rightarrow$ ESP32 $\rightarrow$ PWM výstupy
+\end{center}
+
+Podrobnejší opis konkrétnej komunikácie, endpointov, ukladania dát a cloudovej integrácie je 
+uvedený v softvérovej časti dokumentácie.

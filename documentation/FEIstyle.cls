@@ -1,5 +1,5 @@
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesClass{FEIstyle}[2025/02/07 v. 2.0.1 Thesis template - FEI STUBA]
+\ProvidesClass{FEIstyle}[2025/02/05 v. 2.0.0 Thesis template - FEI STUBA]
 
 % parse arguments
 \DeclareOption{dizp}{\def\typPraceSkr{dizp}
@@ -17,7 +17,7 @@
 \DeclareOption{bp}{\def\typPraceSkr{b}
     \def\isThesis{1}
     \def\typPraceEn{Bachelor's thesis}
-    \def\typPrace{Semestrálne zadanie}
+    \def\typPrace{Bakal\a'arska pr\a'aca}
     \def\typPraceTemp{bakal\'{a}rsku pr\'{a}cu}
     \def\typPraceTempII{bakal\'{a}rskej pr\'{a}ce}}
 \DeclareOption{sp}{\def\typPraceSkr{s}}
@@ -50,23 +50,13 @@
 
 \usepackage[overload]{textcase}
 
-\usepackage{cancel}
-
-\usepackage{cellspace}
-\setlength\cellspacetoplimit{5pt}   % Minimalna medzera nad bunkou
-\setlength\cellspacebottomlimit{5pt} % Minimalna medzera pod bunkou
-
-\usepackage{tabularx} % Pre automatické zalomenie a prispôsobenie šírky
-\usepackage{booktabs} % Pre krajšie a profesionálnejšie vyzerajúce čiary
-\usepackage{makecell} % Pre jednoduché zalomenie textu v hlavičke
-
 % hyperref has to be loaded *before* glossaries
 % see https://mirror.kumi.systems/ctan/macros/latex/contrib/glossaries/glossaries-user.html#sec:hyperref
 \usepackage[bookmarksopen,colorlinks,plainpages=false,urlcolor=blue,hypertexnames=false,unicode]{hyperref}
 
 \usepackage[acronym,nopostdot,nogroupskip,nonumberlist]{glossaries}
 
-\usepackage[final, babel, nopatch=item]{microtype}
+\usepackage[final, babel, nopatch=item]{}
 \usepackage[utf8]{inputenc}
 % we should use ISO 690 & 690-2 http://www.fei.stuba.sk/sk/kniznica-fei/vzory-bibliografickych-odkazov-a-citovanie.html?page_id=1756 
 % package for biblatex https://github.com/michal-h21/biblatex-iso690
@@ -378,14 +368,14 @@
             {0}{
                 \def\@skolaTemp{\printSkola}
                 \def\@skolaFakulta{\printFakulta}
-                % \def\@skolaEvCislo{{Eviden\v{c}n\a'e \v{c}\a'islo: \printEvidencneCislo}}
+                \def\@skolaEvCislo{{Eviden\v{c}n\a'e \v{c}\a'islo: \printEvidencneCislo}}
                 \def\@skolaNazovPrace{\printNazov}
                 \def\@skolaTypPrace{\typPrace}
                 }
             {1}{
                 \def\@skolaTemp{\printSkolaEn}
                 \def\@skolaFakulta{\printFakultaEn}
-                % \def\@skolaEvCislo{{Registration number: \printEvidencneCislo}}
+                \def\@skolaEvCislo{{Registration number: \printEvidencneCislo}}
                 \def\@skolaNazovPrace{\printNazovEn}
                 \def\@skolaTypPrace{\typPraceEn}
                 }
@@ -397,7 +387,7 @@
         \vspace{11.5mm}
         \ifthenelse{\boolean{isThesis}}
         {
-            % \fontsize{12.5pt}{0}\selectfont\noindent\@skolaEvCislo
+            \fontsize{12.5pt}{0}\selectfont\noindent\@skolaEvCislo
         }{}
         \vspace{51.5mm}
         \begin{center}
