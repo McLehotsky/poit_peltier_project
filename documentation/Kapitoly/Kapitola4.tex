@@ -160,6 +160,58 @@ umožňuje zobraziť základné informácie, napríklad aktuálnu teplotu, poža
 stav systému, regulačný mód alebo hodnoty PWM. Vďaka I2C rozhraniu stačia na komunikáciu 
 iba dve dátové vodiče.
 
+\subsection{Identifikácia systému}
+
+Po zostavení a oživení laboratórneho modelu bolo potrebné overiť dynamické správanie 
+sústavy a získať podklady pre návrh regulačných módov. Z tohto dôvodu bola vykonaná 
+identifikácia systému na základe merania prechodových charakteristík pri skokovej zmene 
+akčného zásahu. Samostatne bola sledovaná odozva systému pri pôsobení Peltierovho článku 
+a pri zmene výkonu vodnej pumpy.
+
+\subsubsection{Identifikácia pri použití Peltierovho článku}
+
+Pri identifikácii Peltierovho článku bola sledovaná zmena teploty kvapaliny v čase počas chladenia systému. Meranie sa začínalo pri teplote približne 22~$^\circ$C. V prvej časti merania bolo cieľom dostať teplotu kvapaliny na ustálenejšiu hodnotu, aby bolo možné následne sledovať správanie systému pri zmene akčného zásahu. Po zapnutí chladiacej zostavy začala teplota postupne klesať, pričom systém sa približoval k ustálenému stavu približne po jednej a pol hodine. Z priebehu je vidieť, že tepelná sústava má pomalú odozvu a výraznú zotrvačnosť, čo je pri systémoch s kvapalinou a Peltierovým článkom očakávané.
+
+Na hornom grafe na obr.~\ref{fig:identifikacia_peltier} je zobrazený priebeh teploty v čase. Dolný graf zobrazuje priebeh akčných zásahov počas merania, teda hodnoty riadenia Peltierovho článku a pumpy. Po ustálení teploty bolo možné vykonať zmenu vstupu a sledovať, ako sa táto zmena prejavila na ďalšom priebehu teploty.
+
+\begin{figure}[H]
+    \centering
+    \safeimage{obrazky/identifikaciaPeltier.png}{0.95\textwidth}{Identifikácia systému pri pôsobení Peltierovho článku}
+    \label{fig:identifikacia_peltier}
+\end{figure}
+
+Meranie potvrdilo, že Peltierov článok je hlavný akčný člen pri aktívnom ochladzovaní 
+kvapaliny. Zároveň sa ukázalo, že zmena teploty neprebieha okamžite, ale s výrazným 
+oneskorením. Túto vlastnosť je potrebné zohľadniť pri návrhu regulácie, pretože príliš 
+agresívne riadenie môže viesť k nevhodným zásahom alebo k oneskorenej reakcii systému.
+
+\subsubsection{Identifikácia pri zmene výkonu pumpy}
+
+Druhé meranie bolo zamerané na identifikáciu systému pri zmene výkonu vodnej pumpy. 
+V tomto prípade sa sledovalo, ako zmena prietoku ovplyvní výslednú teplotu kvapaliny. 
+Pumpa neovplyvňuje teplotu priamo ako Peltierov článok, ale nepriamo cez intenzitu 
+premiešavania kvapaliny a prenosu tepla vo výmenníku.
+
+Na obr.~\ref{fig:identifikacia_pumpa} je zobrazená prechodová charakteristika pri zmene 
+výkonu pumpy. V grafe sú vyznačené body \(t_1\) a \(t_2\), ktoré reprezentujú približne 
+28{,}3~\% a 63{,}2~\% výslednej zmeny. Tieto body sa používajú pri orientačnej 
+identifikácii dynamických vlastností sústavy, najmä pri odhade časových parametrov 
+systému.
+
+\begin{figure}[H]
+    \centering
+    \safeimage{obrazky/IdentifikaciaPumpa.png}{0.95\textwidth}{Identifikácia systému pri zmene výkonu pumpy}
+    \label{fig:identifikacia_pumpa}
+\end{figure}
+
+Z nameraného priebehu vyplýva, že vplyv pumpy na samotnú teplotu je menej výrazný ako 
+vplyv Peltierovho článku. Napriek tomu je zmena prietoku dôležitá, pretože ovplyvňuje 
+rýchlosť výmeny tepla v okruhu a môže byť využitá ako akčný zásah v ďalších regulačných 
+módoch systému.
+
+Výsledky identifikácie slúžili ako podklad pre pochopenie správania tepelnej sústavy a 
+pre návrh riadenia v jednotlivých regulačných módoch.
+
 \subsection{Oživenie a vývoj zapojenia počas projektu}
 
 Oživenie hardvéru prebiehalo postupne. Najskôr bolo potrebné overiť napájanie riadiacej časti, 
