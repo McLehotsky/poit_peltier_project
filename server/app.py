@@ -63,6 +63,16 @@ def _apply_attributes(data: dict):
         print(f"[ATTR] mode → {system_state['mode']}")
         socketio.emit('status_update', {'mode': system_state['mode']}, namespace='/test')
 
+    if "archiv_source" in data:
+        system_state['archiv_source'] = int(data['archiv_source'])
+        print(f"[ATTR] archiv_source → {system_state['archiv_source']}")
+        socketio.emit('status_update', {'archiv_source': system_state['archiv_source']}, namespace='/test')
+
+    if "archiv_index" in data:
+        system_state['archiv_index'] = int(data['archiv_index'])
+        print(f"[ATTR] archiv_index → {system_state['archiv_index']}")
+        socketio.emit('status_update', {'archiv_index': system_state['archiv_index']}, namespace='/test')
+
 
 # ─── MQTT CALLBACKS ───────────────────────────────────────────────────────────
 def on_connect(client, userdata, flags, rc):
@@ -74,7 +84,7 @@ def on_connect(client, userdata, flags, rc):
         client.subscribe("v1/devices/me/attributes/response/+")
         client.publish(
             "v1/devices/me/attributes/request/1",
-            json.dumps({"sharedKeys": "control_mode,target_pump_pwm,target_tec_pwm"})
+            json.dumps({"sharedKeys": "control_mode,target_pump_pwm,target_tec_pwm,archiv_source,archiv_index"})
         )
     else:
         print(f"[MQTT] Chyba pripojenia: {rc}")
@@ -226,7 +236,9 @@ system_state = {
     "running": False,
     "error": 0,
     "isErrorActive": False,
-    "session_buffer": []
+    "session_buffer": [],
+    "archiv_source": 0,   # 0=databáza, 1=súbor
+    "archiv_index": 0     # index záznamu
 }
 
 
@@ -404,6 +416,15 @@ def read_db(row_id):
     except Exception as e:
         return str(e), 500
 
+@app.route('/api/archive', methods=['GET'])
+def get_archive_data():
+    """Vráti záznam podľa aktuálneho archiv_source a archiv_index"""
+    source = system_state['archiv_source']
+    index = system_state['archiv_index']
+    if source == 0:
+        return read_db(index)
+    else:
+        return read_log(index)
 
 #  WEBSOCKET – udalosti
 @socketio.on('connect', namespace='/test')
