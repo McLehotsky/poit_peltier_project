@@ -49,7 +49,7 @@ PWM hodnotu pumpy a PWM hodnotu Peltierovho článku.
 
 Server po prijatí dát aktualizuje svoj interný stav a odošle ESP32 spätnú odpoveď. 
 Tá obsahuje napríklad informáciu o tom, či je systém pripojený, či beží meranie, 
-aký regulačný mód je zvolený, aké sú cieľové PWM hodnoty a aká je nastavená požadovaná teplota.
+aký režim riadenia je zvolený, aké sú cieľové PWM hodnoty a aká je nastavená požadovaná teplota.
 
 \begin{lstlisting}[language=json, caption={Príklad odpovede servera pre ESP32}]
 {
@@ -72,7 +72,7 @@ nechcenému spusteniu Peltierovho článku alebo pumpy.
 Flask server tvorí centrálny bod softvérovej časti. Prijíma dáta z ESP32, uchováva 
 aktuálny stav systému, spracúva príkazy z webového rozhrania, komunikuje s ThingsBoardom a 
 zabezpečuje ukladanie meraní. Aktuálne hodnoty sú uložené v stavovej premennej 
-\path{system_state}, ktorá obsahuje napríklad teplotu, PWM hodnoty, setpoint, regulačný mód, 
+\path{system_state}, ktorá obsahuje napríklad teplotu, PWM hodnoty, setpoint, režim riadenia, 
 stav merania a buffer aktuálnej session.
 
 Pre komunikáciu sú vytvorené REST API endpointy uvedené v tabuľke \ref{tab:rest_api_endpointy}.
@@ -92,7 +92,7 @@ Pre komunikáciu sú vytvorené REST API endpointy uvedené v tabuľke \ref{tab:
 \hline
 \path{/api/setpoint} & POST & Nastavenie požadovanej teploty. \\
 \hline
-\path{/api/mode} & POST & Nastavenie regulačného módu. \\
+\path{/api/mode} & POST & Nastavenie režimu riadenia systému. \\
 \hline
 \path{/api/pwm_pump} & POST & Nastavenie cieľovej PWM hodnoty pumpy. \\
 \hline
@@ -107,7 +107,7 @@ Pre komunikáciu sú vytvorené REST API endpointy uvedené v tabuľke \ref{tab:
 \end{longtable}
 }
 
-Endpoint \path{/api/update} je hlavný vstupný bod pre dáta z hardvéru. Endpointy \path{/api/start} a \path{/api/stop} riadia začiatok a koniec merania. Endpointy pre setpoint, mód a PWM hodnoty slúžia na zmenu riadiacich parametrov systému.
+Endpoint \path{/api/update} je hlavný vstupný bod pre dáta z hardvéru. Endpointy \path{/api/start} a \path{/api/stop} riadia začiatok a koniec merania. Endpointy pre setpoint, režim riadenia a PWM hodnoty slúžia na zmenu riadiacich parametrov systému.
 
 \subsection{Webové rozhranie a realtime prenos dát}
 
@@ -126,12 +126,14 @@ Webové rozhranie zobrazuje najmä:
     \item požadovanú teplotu,
     \item PWM hodnotu pumpy,
     \item PWM hodnotu Peltierovho článku,
-    \item aktuálny stav systému a regulačný mód.
+    \item aktuálny stav systému a režim riadenia.
 \end{itemize}
 
 Používateľ môže cez webové rozhranie systém pripojiť, spustiť alebo zastaviť meranie, 
 nastaviť požadovanú teplotu, zvoliť regulačný mód a manuálne nastaviť PWM hodnoty pumpy a 
-Peltierovho článku. Súčasťou webovej aplikácie je aj archívna stránka, ktorá umožňuje 
+Peltierovho článku. Manuálne nastavenie oboch PWM hodnôt je využité aj v samostatnom 
+manuálnom režime, ktorý slúži na priame ovládanie pumpy a Peltierovho článku bez automatického 
+regulačného zásahu. Súčasťou webovej aplikácie je aj archívna stránka, ktorá umožňuje 
 zobrazenie historických meraní z databázy alebo zo súboru JSON.
 
 \subsection{Dátová vrstva -- MySQL a JSON}
@@ -142,7 +144,7 @@ Dátové body sa do buffra pridávajú iba vtedy, keď je systém v stave \path{
 Tým sa zabraňuje ukladaniu zbytočných údajov v pohotovostnom režime.
 
 Každý dátový bod obsahuje najmä poradové číslo vzorky, časovú značku, teplotu, 
-PWM hodnotu pumpy, PWM hodnotu Peltierovho článku, požadovanú teplotu a aktuálny regulačný mód.
+PWM hodnotu pumpy, PWM hodnotu Peltierovho článku, požadovanú teplotu a aktuálny režim riadenia.
 
 Po zastavení merania sa celá session uloží naraz do dvoch úložísk:
 
@@ -173,6 +175,22 @@ TB_TOKEN = <device_access_token>
 Po prijatí dát z ESP32 server publikuje telemetriu na topic 
 \path{v1/devices/me/telemetry}.
 
+Pripojenie k ThingsBoardu je v backendovej časti aplikácie definované pomocou parametrov 
+\path{TB_HOST}, \path{TB_PORT} a \path{TB_TOKEN}. Parameter \path{TB_HOST} určuje adresu 
+ThingsBoard servera, parameter \path{TB_PORT} určuje port MQTT komunikácie a parameter 
+\path{TB_TOKEN} predstavuje prístupový token zariadenia vytvoreného v ThingsBoarde. 
+V projekte bola použitá cloudová inštancia \path{thingsboard.cloud} a MQTT port \path{1883}.
+
+\begin{lstlisting}[caption={Základné nastavenie pripojenia k ThingsBoardu}]
+TB_HOST = "thingsboard.cloud"
+TB_PORT = 1883
+TB_TOKEN = "<device_access_token>"
+\end{lstlisting}
+
+MQTT klient beží asynchrónne v samostatnom vlákne, aby neblokoval hlavnú Flask aplikáciu. 
+Server tak môže súčasne prijímať dáta z ESP32, obsluhovať lokálne webové rozhranie a odosielať 
+telemetriu do cloudovej platformy.
+
 Do ThingsBoardu sa odosielajú hlavné veličiny uvedené v tabuľke \ref{tab:thingsboard_telemetria}.
 
 {\small
@@ -190,7 +208,7 @@ Do ThingsBoardu sa odosielajú hlavné veličiny uvedené v tabuľke \ref{tab:th
 \hline
 \path{tec_pwm} & PWM hodnota Peltierovho článku. & 0--255 \\
 \hline
-\path{mode} & Aktívny regulačný mód. & 1 / 2 / 3 \\
+\path{mode} & Aktívny režim systému. & 1 / 2 / 3 / 4 \\
 \hline
 \path{running} & Stav regulácie. & bool \\
 \hline
@@ -204,72 +222,109 @@ ktorý zobrazuje stručný diagnostický stav systému.
 
 Dashboard v ThingsBoarde je rozdelený na dva stavy. 
 
-Stav \textit{Default} slúži na realtime sledovanie a ovládanie systému. Obsahuje grafy teploty, PWM pumpy a PWM Peltierovho článku, 
-tlačidlá \textit{Connect}, \textit{Start}, \textit{Stop}, prepínanie módov a vstupy 
-pre manuálne PWM hodnoty. 
+V prostredí ThingsBoard bol vytvorený dashboard \textit{Peltier Control System}. Dashboard je 
+rozdelený na dva hlavné stavy: \textit{Default} a \textit{Archív}. Stav \textit{Default} slúži 
+na sledovanie a ovládanie systému v reálnom čase. Obsahuje grafy teploty, PWM pumpy a PWM 
+Peltierovho článku, ovládacie tlačidlá, prepínanie módov, vstupy pre manuálne PWM hodnoty 
+a diagnostické widgety. Stav \textit{Archív} slúži na zobrazenie historických údajov za posledných 
+24 hodín.
 
-\begin{table}[H]
-\centering
-\begin{tabular}{llll}
-\toprule
-\textbf{Widget (ID)} & \textbf{Sledovaná veličina} & \textbf{Časové okno} & \textbf{Aktualizácia} \\
-\midrule
-Teplota [C°] (\texttt{w\_teplota}) & \texttt{temperature}, \texttt{setpoint} & 5 minút (300 s) & 1 s \\
-Pumpa (\texttt{w\_pumpa})          & \texttt{pump\_pwm}                     & 1 minúta (60 s) & 1 s \\
-PET (\texttt{w\_pet})              & \texttt{tec\_pwm}                      & 1 minúta (60 s) & 1 s \\
-\bottomrule
-\end{tabular}
-\caption{Real-time vizualizačné widgety}
-\end{table}
- 
+Vizualizačné widgety v stave \textit{Default} sú naviazané na telemetrické kľúče odosielané 
+z Flask servera. Graf teploty zobrazuje hodnoty \path{temperature} a \path{setpoint} 
+v časovom okne 300~s. Graf pumpy zobrazuje hodnotu \path{pump_pwm} v časovom 
+okne 60~s a graf Peltierovho článku zobrazuje hodnotu \path{tec_pwm} taktiež v 
+časovom okne 60~s. Aktualizácia grafov je nastavená na 1~s.
 
-\begin{table}[H]
-\centering
-\begin{tabular}{llll}
-\toprule
-\textbf{Widget (ID)} & \textbf{RPC metóda} & \textbf{Parameter} & \textbf{Akcia} \\
-\midrule
-Connect (\texttt{w\_connect}) & \texttt{setConnected} & \texttt{true}  & Aktivuje pripojenie systému \\
-Start (\texttt{w\_start})     & \texttt{setRunning}   & \texttt{true}  & Spustí meranie / reguláciu \\
-Stop (\texttt{w\_stop})       & \texttt{setRunning}   & \texttt{false} & Zastaví meranie a uloží session \\
-\bottomrule
-\end{tabular}
-\caption{Ovládacie tlačidlá --- RPC príkazy}
-\end{table}
+{\small
+\begin{longtable}{|>{\RaggedRight\arraybackslash}p{0.30\textwidth}|>{\RaggedRight\arraybackslash}p{0.28\textwidth}|>{\RaggedRight\arraybackslash}p{0.18\textwidth}|>{\RaggedRight\arraybackslash}p{0.14\textwidth}|}
+\hline
+\textbf{Widget} & \textbf{Sledovaná veličina} & \textbf{Časové okno} & \textbf{Aktualizácia} \\
+\hline
+Teplota [C$^\circ$] (\path{w_teplota}) & \path{temperature}, \path{setpoint} & 300~s & 1~s \\
+\hline
+Pumpa (\path{w_pumpa}) & \path{pump_pwm} & 60~s & 1~s \\
+\hline
+PET (\path{w_pet}) & \path{tec_pwm} & 60~s & 1~s \\
+\hline
+\caption{Vizualizačné widgety v stave Default}
+\label{tab:tb_default_widgety}
+\end{longtable}
+}
 
-\begin{table}[H]
-\centering
-\begin{tabular}{lll}
-\toprule
-\textbf{Widget (ID)} & \textbf{Zdieľaný atribút} & \textbf{Hodnota} \\
-\midrule
-Mod 1 (\texttt{w\_mod1}) & \texttt{control\_mode} & 1 \\
-Mod 2 (\texttt{w\_mod2}) & \texttt{control\_mode} & 2 \\
-Mod 3 (\texttt{w\_mod3}) & \texttt{control\_mode} & 3 \\
-\bottomrule
-\end{tabular}
-\caption{Tlačidlá módov --- zdieľané atribúty}
-\end{table}
+Ovládacie tlačidlá \textit{Connect}, \textit{Start} a \textit{Stop} odosielajú RPC príkazy, ktoré 
+Flask server spracuje a premietne do aktuálneho stavu systému. Tlačidlá \textit{Mod 1}, 
+\textit{Mod 2}, \textit{Mod 3} a \textit{Mod 4} nastavujú režim systému zápisom zdieľaného atribútu 
+\path{control_mode}. Prvé tri módy predstavujú regulačné režimy podľa zadania, ale taktiež sme pridali aj bonusový 
+štvrtý mód, ktorý manuálne riadi pumpu aj Peltierov článok.
 
-\begin{table}[H]
-\centering
-\begin{tabular}{llll}
-\toprule
-\textbf{Widget (ID)} & \textbf{Zdieľaný atribút} & \textbf{Typ} & \textbf{Rozsah} \\
-\midrule
-Ovládanie: Pump PWM (\texttt{w\_pump\_ctrl}) & \texttt{target\_pump\_pwm} & integer & 0 -- 255 \\
-Ovládanie: TEC PWM (\texttt{w\_tec\_ctrl})   & \texttt{target\_tec\_pwm}  & integer & 0 -- 255 \\
-\bottomrule
-\end{tabular}
-\caption{Vstupné polia pre manuálne ovládanie}
-\end{table}
+{\small
+\begin{longtable}{|>{\RaggedRight\arraybackslash}p{0.30\textwidth}|>{\RaggedRight\arraybackslash}p{0.35\textwidth}|>{\centering\arraybackslash}p{0.20\textwidth}|}
+\hline
+\textbf{Widget} & \textbf{Zdieľaný atribút / metóda} & \textbf{Hodnota} \\
+\hline
+Connect (\path{w_connect}) & \path{setConnected} & \path{true} \\
+\hline
+Start (\path{w_start}) & \path{setRunning} & \path{true} \\
+\hline
+Stop (\path{w_stop}) & \path{setRunning} & \path{false} \\
+\hline
+Mod 1 (\path{w_mod1}) & \path{control_mode} & 1 \\
+\hline
+Mod 2 (\path{w_mod2}) & \path{control_mode} & 2 \\
+\hline
+Mod 3 (\path{w_mod3}) & \path{control_mode} & 3 \\
+\hline
+Mod 4 (\path{w_mod4}) & \path{control_mode} & 4 \\
+\hline
+\caption{Ovládacie widgety v ThingsBoard dashboarde}
+\label{tab:tb_ovladacie_widgety}
+\end{longtable}
+}
 
- \begin{itemize}
-  \item \textbf{Error} (\texttt{w\_error}): Zobrazuje aktuálnu regulačnú odchýlku (setpoint $-$ teplota) ako read-only hodnotu z telemetrie.
-  \item \textbf{Terminal} (\texttt{w\_terminal}): Zobrazuje diagnostický reťazec \texttt{terminal}, ktorý server aktualizuje pri každom publikovaní telemetrie vo formáte: \texttt{T=XX.X°C | Err=X.XX | RUN/STOP | Mode=X}.
-\end{itemize}
+Vstupné polia pre manuálne PWM hodnoty umožňujú nastaviť výkon pumpy a Peltierovho článku. 
+Hodnoty sa zapisujú do zdieľaných atribútov zariadenia a Flask server ich prijíma cez MQTT komunikáciu.
 
+{\small
+\begin{longtable}{|>{\RaggedRight\arraybackslash}p{0.34\textwidth}|>{\RaggedRight\arraybackslash}p{0.34\textwidth}|>{\RaggedRight\arraybackslash}p{0.12\textwidth}|>{\RaggedRight\arraybackslash}p{0.12\textwidth}|}
+\hline
+\textbf{Widget} & \textbf{Zdieľaný atribút} & \textbf{Typ} & \textbf{Rozsah} \\
+\hline
+Ovládanie: Pump PWM (\path{w_pump_ctrl}) & \path{target_pump_pwm} & integer & 0--255 \\
+\hline
+Ovládanie: TEC PWM (\path{w_tec_ctrl}) & \path{target_tec_pwm} & integer & 0--255 \\
+\hline
+\caption{Manuálne nastavenie PWM hodnôt cez ThingsBoard}
+\label{tab:tb_pwm_vstupy}
+\end{longtable}
+}
 
+Diagnostický widget \textit{Error} (\path{w_error}) zobrazuje aktuálnu regulačnú odchýlku ako 
+hodnotu z telemetrie. Widget \textit{Terminal} (\path{w_terminal}) zobrazuje diagnostický reťazec 
+\path{terminal}, ktorý je serverom aktualizovaný pri každom odoslaní telemetrie. Diagnostický 
+reťazec má formát:
+
+\begin{center}
+\texttt{T=XX.X$^\circ$C\ | \ Err=X.XX\ | \ RUN/STOP\ | \ Mode=X}
+\end{center}
+
+Stav \textit{Archív} obsahuje historické grafy pre teplotu, PWM pumpy a PWM Peltierovho článku. 
+Grafy pracujú s časovým oknom posledných 24 hodín.
+
+{\small
+\begin{longtable}{|>{\RaggedRight\arraybackslash}p{0.34\textwidth}|>{\RaggedRight\arraybackslash}p{0.34\textwidth}|>{\RaggedRight\arraybackslash}p{0.22\textwidth}|}
+\hline
+\textbf{Widget} & \textbf{Sledovaná veličina} & \textbf{Časové okno} \\
+\hline
+Teplota [C$^\circ$] (\path{a_teplota}) & \path{temperature}, \path{setpoint} & posledných 24 hodín \\
+\hline
+Pumpa (\path{a_pumpa}) & \path{pump_pwm} & posledných 24 hodín \\
+\hline
+PET (\path{a_pet}) & \path{tec_pwm} & posledných 24 hodín \\
+\hline
+\caption{Widgety v stave Archív}
+\label{tab:tb_archiv_widgety}
+\end{longtable}
+}
 
 \begin{figure}[H]
     \centering
@@ -312,30 +367,53 @@ príkazy. Použité sú dva mechanizmy. Prvým sú RPC príkazy cez topic
 \textit{Connect}, \textit{Start} a \textit{Stop}. Druhým mechanizmom sú zdieľané atribúty cez 
 topic \path{v1/devices/me/attributes}.
 
+Po prijatí RPC príkazu server aktualizuje svoj lokálny stav a odošle späť potvrdzujúcu odpoveď.
+
+\begin{lstlisting}[caption={Príklad odpovede na RPC príkaz z ThingsBoardu}]
+mqtt_client.publish(
+    topic = "v1/devices/me/rpc/response/{request_id}",
+    payload = json.dumps({"status": "ok"})
+)
+\end{lstlisting}
+
 Cez zdieľané atribúty sa prenášajú najmä:
 
 \begin{itemize}
-    \item \path{control_mode} -- nastavenie regulačného módu,
+    \item \path{control_mode} -- nastavenie režimu systému,
     \item \path{target_pump_pwm} -- cieľová PWM hodnota pumpy,
     \item \path{target_tec_pwm} -- cieľová PWM hodnota Peltierovho článku.
 \end{itemize}
+
+Po každom pripojení si server môže aktívne vyžiadať aktuálne hodnoty zdieľaných atribútov, aby 
+sa predišlo desynchronizácii po reštarte aplikácie.
+
+\begin{lstlisting}[caption={Vyžiadanie aktuálnych zdieľaných atribútov}]
+client.publish(
+    "v1/devices/me/attributes/request/1",
+    json.dumps({"sharedKeys": "control_mode,target_pump_pwm,target_tec_pwm"})
+)
+\end{lstlisting}
 
 Po prijatí zmeny z ThingsBoardu Flask server aktualizuje svoj interný stav a pri 
 najbližšej komunikácii odošle nové hodnoty do ESP32. Zmeny môžu byť zároveň odoslané 
 aj do lokálneho webového dashboardu pomocou WebSocket udalosti \path{status_update}.
 
-\subsection{Regulačné módy systému}
+\subsection{Režimy riadenia systému}
 
-Systém podporuje tri regulačné módy, ktoré je možné prepínať z webového rozhrania alebo z 
-ThingsBoard dashboardu.
+Systém podporuje tri regulačné módy požadované zadaním, ktoré je možné prepínať z webového 
+rozhrania alebo z ThingsBoard dashboardu. Okrem týchto režimov bol doplnený aj štvrtý 
+manuálny režim, ktorý slúži na priame nastavenie PWM hodnoty pumpy a Peltierovho článku.
 
 \begin{itemize}
     \item \textbf{Mód 1} -- regulácia pomocou Peltierovho článku pri konštantnom alebo manuálne nastavenom výkone pumpy,
     \item \textbf{Mód 2} -- regulácia pomocou prietoku pumpy pri konštantnom výkone Peltierovho článku,
-    \item \textbf{Mód 3} -- hybridná alebo kaskádová regulácia pomocou Peltierovho článku aj pumpy.
+    \item \textbf{Mód 3} -- hybridná alebo kaskádová regulácia pomocou Peltierovho článku aj pumpy,
+    \item \textbf{Mód 4} -- manuálny režim, v ktorom používateľ nastavuje PWM hodnotu pumpy aj PWM hodnotu Peltierovho článku bez automatického regulačného zásahu.
 \end{itemize}
 
-Zvolený mód sa ukladá do interného stavu servera a následne sa prenáša do ESP32. 
+Zvolený režim sa ukladá do interného stavu servera a následne sa prenáša do ESP32. 
 Pre PID reguláciu je v projekte pripravený modul \path{pid_logic.py}, ktorý obsahuje triedu 
 \path{PIDController}. Finálne nastavenie regulačných parametrov závisí od výsledkov 
-identifikácie a testovania reálnej tepelnej sústavy.
+identifikácie a testovania reálnej tepelnej sústavy. Manuálny režim je využiteľný najmä pri 
+oživovaní hardvéru, testovaní akčných členov a overovaní vplyvu PWM hodnoty pumpy a 
+Peltierovho článku na teplotu kvapaliny.
